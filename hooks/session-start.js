@@ -28,16 +28,46 @@ function getProjectId() {
 const LEARNED_DIR = path.join(HOME, '.claude', 'skills', 'learned');
 const MAX_AGE_DAYS = 7;
 
-// === Smart Context: customize this for your projects ===
-// Each entry maps a CWD keyword to memory files that should be loaded
-const PROJECT_CONTEXT = [
-  // Example:
-  // {
-  //   keywords: ['my-app'],        // if CWD contains 'my-app'
-  //   name: 'My App',              // display name
-  //   files: ['app-notes.md'],     // memory files to load
-  // },
-];
+// === Smart Context: auto-scan all project memory directories ===
+function autoDetectProjectContext() {
+  const projectsDir = path.join(HOME, '.claude', 'projects');
+  if (!fs.existsSync(projectsDir)) return null;
+
+  const cwd = process.cwd().replace(/\\/g, '/').toLowerCase();
+
+  // 掃描所有專案目錄，找出有 memory/ 的
+  const entries = fs.readdirSync(projectsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+
+    const memDir = path.join(projectsDir, entry.name, 'memory');
+    if (!fs.existsSync(memDir)) continue;
+
+    // 從 project-id 還原路徑片段來比對 CWD
+    // project-id 格式：drive--path-segments（例如 C--Users-kaoru-my-project）
+    const segments = entry.name.split('--').join('/').split('-');
+    const projectHint = segments.filter(s => s.length > 1).join('/').toLowerCase();
+
+    // 檢查 CWD 是否包含這個專案的路徑片段
+    const keyParts = entry.name.replace(/^[a-zA-Z]--/, '').split('-').filter(s => s.length > 2);
+    const isMatch = keyParts.length > 0 && keyParts.every(part => cwd.includes(part.toLowerCase()));
+
+    if (isMatch) {
+      // 載入該專案 memory/ 下所有 .md 檔案
+      const mdFiles = fs.readdirSync(memDir).filter(f => f.endsWith('.md'));
+      const loaded = [];
+      for (const filename of mdFiles) {
+        const filepath = path.join(memDir, filename);
+        const content = fs.readFileSync(filepath, 'utf-8').trim();
+        // 只載入前 50 行，避免 context 爆炸
+        const lines = content.split('\n').slice(0, 50);
+        loaded.push({ name: filename, content: lines.join('\n') });
+      }
+      return { project: entry.name, files: loaded };
+    }
+  }
+  return null;
+}
 
 // === 找最近的 session 摘要 ===
 function findLatestSession() {
@@ -59,28 +89,9 @@ function findLatestSession() {
   return files.length > 0 ? files[0] : null;
 }
 
-// === Smart Context：根據 CWD 載入對應記憶 ===
+// === Smart Context：自動偵測 CWD 對應的專案記憶 ===
 function loadSmartContext() {
-  const cwd = process.cwd().replace(/\\/g, '/').toLowerCase();
-  const matched = PROJECT_CONTEXT.find(p =>
-    p.keywords.some(kw => cwd.includes(kw.toLowerCase()))
-  );
-
-  if (!matched) return null;
-  if (!fs.existsSync(MEMORY_DIR)) return null;
-
-  const loaded = [];
-  for (const filename of matched.files) {
-    const filepath = path.join(MEMORY_DIR, filename);
-    if (!fs.existsSync(filepath)) continue;
-
-    const content = fs.readFileSync(filepath, 'utf-8').trim();
-    // 只載入前 50 行，避免 context 爆炸
-    const lines = content.split('\n').slice(0, 50);
-    loaded.push({ name: filename, content: lines.join('\n') });
-  }
-
-  return { project: matched.name, files: loaded };
+  return autoDetectProjectContext();
 }
 
 // === 找最近的踩坑紀錄 ===

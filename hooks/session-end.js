@@ -140,7 +140,14 @@ function detectPitfalls(parsed) {
   }
 
   // 訊號 3：使用者糾正
-  const correctionKeywords = ['wrong', 'not this', 'revert', 'undo', 'that's not', 'go back', 'not what I'];
+  const correctionKeywords = [
+    // English
+    'wrong', 'not this', 'revert', 'undo', 'that\'s not', 'go back', 'not what I',
+    // Chinese
+    '\u4e0d\u5c0d', '\u932f\u4e86', '\u6539\u56de\u4f86', '\u4e0d\u662f\u9019\u500b', '\u56de\u5fa9', '\u6492\u92b7',
+    '\u91cd\u4f86', '\u91cd\u505a', '\u4e0d\u8981\u9019\u6a23', '\u53d6\u6d88', '\u4e0d\u662f\u6211\u8981\u7684',
+    '\u6211\u8aaa\u7684\u4e0d\u662f', '\u4f60\u8aa4\u6703\u4e86', '\u8acb\u505c\u4e0b',
+  ];
   for (const msg of parsed.userMessages) {
     if (correctionKeywords.some(kw => msg.includes(kw))) {
       pitfalls.push({
@@ -154,18 +161,43 @@ function detectPitfalls(parsed) {
   return pitfalls;
 }
 
-// === 存Pitfall Record ===
-function savePitfalls(pitfalls) {
+// === 從對話中抓出解法 ===
+function extractSolution(parsed, pitfall) {
+  if (!parsed || !parsed.toolCalls) return null;
+
+  // 找踩坑後成功的那次呼叫，取出結果作為解法線索
+  if (pitfall.type === 'error-then-fix' && pitfall.target) {
+    for (let i = parsed.toolCalls.length - 1; i >= 0; i--) {
+      const call = parsed.toolCalls[i];
+      if (call.target === pitfall.target && !call.hasError && call.resultSnippet) {
+        return call.resultSnippet;
+      }
+    }
+  }
+
+  // 重試型：取最後一次成功的結果
+  if (pitfall.type === 'retry' && pitfall.target) {
+    for (let i = parsed.toolCalls.length - 1; i >= 0; i--) {
+      const call = parsed.toolCalls[i];
+      if (call.target === pitfall.target && !call.hasError && call.resultSnippet) {
+        return call.resultSnippet;
+      }
+    }
+  }
+
+  return null;
+}
+
+// === 存 Pitfall Record ===
+function savePitfalls(pitfalls, parsed) {
   if (pitfalls.length === 0) return;
   ensureDir(LEARNED_DIR);
 
   const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-  // 合併所有踩坑成一份紀錄
   const slug = `auto-pitfall-${dateStr}`;
   let filename = `${slug}.md`;
   const filepath = path.join(LEARNED_DIR, filename);
 
-  // 如果同名已存在就加序號
   if (fs.existsSync(filepath)) {
     const seq = Math.random().toString(36).substring(2, 5);
     filename = `${slug}-${seq}.md`;
@@ -175,17 +207,27 @@ function savePitfalls(pitfalls) {
 
 ## Issues Detected
 
-${pitfalls.map(p => `### ${p.type}
+${pitfalls.map(p => {
+  const solution = extractSolution(parsed, p);
+  return `### ${p.type}
 - ${p.description}
-${p.errorSnippet ? `- Error snippet：\`${p.errorSnippet}\`` : ''}`).join('\n\n')}
+${p.errorSnippet ? `- Error：\`${p.errorSnippet}\`` : ''}
+${solution ? `- Solution：\`${solution}\`` : ''}`;
+}).join('\n\n')}
 
 ## Lessons
 
-（下次 session 開始時，Memory Engine會讀取這份紀錄並提醒自己）
+${pitfalls.map(p => {
+  const solution = extractSolution(parsed, p);
+  if (solution) {
+    return `- ${p.target || 'unknown'}：failed -> fixed with \`${solution.substring(0, 80)}\``;
+  }
+  return `- ${p.target || 'unknown'}：${p.description}`;
+}).join('\n')}
 `;
 
   fs.writeFileSync(path.join(LEARNED_DIR, filename), content, 'utf-8');
-  debugLog(`Pitfall saved：${filename}（${pitfalls.length} 項）`);
+  debugLog(`Pitfall saved：${filename}（${pitfalls.length} items, with solutions）`);
 }
 
 // === 清理舊 session ===
@@ -205,6 +247,86 @@ function cleanOldSessions() {
       try { fs.unlinkSync(old.path); } catch (e) {}
     }
   }
+}
+
+// === 每週自動合併 session 為週報 ===
+function generateWeeklyDigest() {
+  if (!fs.existsSync(SESSIONS_DIR)) return;
+
+  const now = Date.now();
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  const digestDir = path.join(SESSIONS_DIR, 'digest');
+  ensureDir(digestDir);
+
+  // 檢查這週有沒有已經產生過週報
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay()); // 本週日
+  const weekId = weekStart.toISOString().split('T')[0];
+  const digestFile = path.join(digestDir, `week-${weekId}.md`);
+
+  if (fs.existsSync(digestFile)) return; // 這週已經有了
+
+  // 找出超過 7 天的 session 檔案
+  const oldSessions = fs.readdirSync(SESSIONS_DIR)
+    .filter(f => f.endsWith('-session.md'))
+    .map(f => ({
+      name: f,
+      path: path.join(SESSIONS_DIR, f),
+      mtime: fs.statSync(path.join(SESSIONS_DIR, f)).mtimeMs
+    }))
+    .filter(f => (now - f.mtime) > oneWeek && (now - f.mtime) < oneWeek * 2)
+    .sort((a, b) => a.mtime - b.mtime);
+
+  if (oldSessions.length < 3) return; // 太少不值得合併
+
+  // 合併成週報
+  const allFiles = new Set();
+  const allTools = new Set();
+  const allTopics = [];
+  let totalMessages = 0;
+
+  for (const session of oldSessions) {
+    const content = fs.readFileSync(session.path, 'utf-8');
+
+    // 抓 Files touched
+    const filesMatch = content.match(/## Files touched\n([\s\S]*?)(?=\n##|$)/);
+    if (filesMatch) {
+      filesMatch[1].split('\n').filter(l => l.startsWith('- ')).forEach(l => allFiles.add(l.slice(2).trim()));
+    }
+
+    // 抓 Tools used
+    const toolsMatch = content.match(/## Tools used\n(.+)/);
+    if (toolsMatch) {
+      toolsMatch[1].split(', ').forEach(t => allTools.add(t.trim()));
+    }
+
+    // 抓 What was done
+    const topicMatch = content.match(/## What was done\n(.+)/);
+    if (topicMatch && topicMatch[1] !== 'No clear topic detected') {
+      allTopics.push(topicMatch[1].trim());
+    }
+
+    // 抓 Messages 數
+    const msgMatch = content.match(/Messages:\*\* (\d+)/);
+    if (msgMatch) totalMessages += parseInt(msgMatch[1]);
+  }
+
+  const digest = `# Weekly Digest: ${weekId}
+**Sessions:** ${oldSessions.length} | **Total messages:** ${totalMessages}
+
+## Topics covered
+${allTopics.length > 0 ? allTopics.map(t => `- ${t}`).join('\n') : 'None recorded'}
+
+## Files touched
+${allFiles.size > 0 ? [...allFiles].map(f => `- ${f}`).join('\n') : 'None'}
+
+## Tools used
+${[...allTools].join(', ') || 'None'}
+`;
+
+  fs.writeFileSync(digestFile, digest, 'utf-8');
+  debugLog(`Weekly digest saved: week-${weekId}.md (${oldSessions.length} sessions merged)`);
 }
 
 // === 主程式 ===
@@ -251,18 +373,24 @@ function main(inputData) {
 
     const recentMessages = parsed.userMessages.slice(-8);
 
+    // 從訊息中提取主要工作主題（取前 3 則訊息的關鍵內容）
+    const topicMessages = parsed.userMessages.slice(0, 3);
+    const mainTopic = topicMessages.map(m => m.substring(0, 60)).join(' | ');
+
     const summary = `# Session: ${dateStr}
-**Time:** ${timeStr}
-**Messages:** ${parsed.userMessages.length}
+**Time:** ${timeStr} | **Messages:** ${parsed.userMessages.length} | **Tools:** ${parsed.toolsUsed.length}
 
-## User Requests
-${recentMessages.map(m => `- ${m}`).join('\n')}
+## What was done
+${mainTopic || 'No clear topic detected'}
 
-## Tools Used
-${parsed.toolsUsed.join(', ') || 'None'}
+## Key requests
+${recentMessages.slice(-5).map(m => `- ${m}`).join('\n')}
 
-## Files Modified
+## Files touched
 ${parsed.filesModified.length > 0 ? parsed.filesModified.map(f => `- ${f}`).join('\n') : 'None'}
+
+## Tools used
+${parsed.toolsUsed.join(', ') || 'None'}
 `;
 
     fs.writeFileSync(path.join(SESSIONS_DIR, filename), summary, 'utf-8');
@@ -272,8 +400,11 @@ ${parsed.filesModified.length > 0 ? parsed.filesModified.map(f => `- ${f}`).join
     const pitfalls = detectPitfalls(parsed);
     debugLog(`踩坑偵測結果: ${pitfalls.length} 項`);
     if (pitfalls.length > 0) {
-      savePitfalls(pitfalls);
+      savePitfalls(pitfalls, parsed);
     }
+
+    // 週報合併（靜默執行，失敗不影響主流程）
+    try { generateWeeklyDigest(); } catch (e) { debugLog(`Weekly digest error: ${e.message}`); }
 
     debugLog('=== session-end 完成 ===');
   } catch (err) {

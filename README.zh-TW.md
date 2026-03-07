@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
+  <img src="https://img.shields.io/badge/version-1.1-C4B7D7?style=flat-square" alt="v1.1">
 </p>
 
 <p align="center">
@@ -30,9 +31,22 @@
 
 ---
 
+## :sparkles: v1.1 新功能
+
+| 功能 | 說明 |
+| :--- | :--- |
+| Smart Context 自動偵測 | 不用再手動設定 `PROJECT_CONTEXT`，自動掃描所有專案的記憶目錄，根據工作目錄配對 |
+| 中文糾正偵測 | 踩坑偵測現在認得 13 個中文詞（「不對」「錯了」「改回來」等） |
+| `/memory-search` 指令 | 用關鍵字搜尋所有記憶檔案 |
+| 踩坑含解法 | 踩坑紀錄現在會自動從對話中抓出解法，不只記錯誤 |
+| Session 摘要改版 | 摘要現在包含「做了什麼」主題摘錄，不再只是原始訊息列表 |
+| 每週自動週報 | 超過 7 天的 session 自動合併成週報，存到 `sessions/digest/` |
+
+---
+
 ## 怎麼解決
 
-Memory Engine 用 **5 個 hooks** 和 **3 個指令** 搞定這些問題。
+Memory Engine 用 **5 個 hooks** 和 **4 個指令** 搞定這些問題。
 
 ### :link: Hooks
 
@@ -51,6 +65,7 @@ Memory Engine 用 **5 個 hooks** 和 **3 個指令** 搞定這些問題。
 | `/diary` | 從對話產生反思日記 — 做了什麼、學到什麼、發現什麼規律 |
 | `/reflect` | 分析最近的日記和踩坑紀錄，找出重複的模式，提出改善建議 |
 | `/memory-health` | 列出所有記憶檔案的行數、更新時間、健康狀態 |
+| `/memory-search` | 用關鍵字搜尋所有記憶檔案 |
 
 ---
 
@@ -149,17 +164,9 @@ mkdir -p ~/.claude/scripts/hooks
 
 ## :brain: Smart Context：自動載入對應記憶
 
-`session-start.js` 會根據你的工作目錄（CWD），自動判斷你在哪個專案，載入對應的記憶檔案。
+`session-start.js` 會自動掃描 `~/.claude/projects/` 底下所有專案目錄，根據你的工作目錄（CWD）配對，載入對應的記憶檔案。
 
-```javascript
-const PROJECT_CONTEXT = [
-  {
-    keywords: ['my-project'],       // CWD 包含這些關鍵字
-    name: '我的專案',                // 顯示名稱
-    files: ['project-notes.md'],    // 要載入的記憶檔案
-  },
-];
-```
+不需要任何手動設定，它會自己找到你正在做的專案。
 
 記憶檔案放在 `~/.claude/projects/{project-id}/memory/` 目錄下。
 
@@ -178,6 +185,8 @@ const PROJECT_CONTEXT = [
 
 偵測到的踩坑紀錄會自動存到 `~/.claude/skills/learned/auto-pitfall-{date}.md`，下次開新對話時自動提醒。
 
+v1.1 起，踩坑紀錄會同時包含**解法** — 從同一次對話中自動抓出成功的修正，讓你同時看到問題和答案。
+
 ---
 
 ## :open_file_folder: 檔案結構
@@ -194,6 +203,7 @@ claude-memory-engine/
     diary.md              # /diary 反思日記
     reflect.md            # /reflect 反思分析
     memory-health.md      # /memory-health 記憶健檢
+    memory-search.md      # /memory-search 關鍵字搜尋記憶
   skill/
     SKILL.md              # Skill 定義
     references/
@@ -209,7 +219,7 @@ claude-memory-engine/
 
 | 想改什麼 | 去哪裡改 |
 | :------- | :------ |
-| Smart Context 對應表 | `session-start.js` 的 `PROJECT_CONTEXT` |
+| Smart Context 對應表 | v1.1 自動偵測（通常不需要設定）。可在 `session-start.js` 的 `autoDetectProjectContext()` 調整 |
 | 踩坑偵測關鍵字 | `session-end.js` 的 `correctionKeywords` |
 | 敏感檔案清單 | `write-guard.js` 的 `PROTECTED_PATTERNS` |
 | session 保留數量 | `session-end.js` 的 `MAX_SESSIONS`（預設 30） |

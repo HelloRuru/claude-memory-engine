@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
+  <img src="https://img.shields.io/badge/version-1.1-C4B7D7?style=flat-square" alt="v1.1">
 </p>
 
 <p align="center">
@@ -30,9 +31,22 @@ Every new conversation, Claude forgets everything.
 
 ---
 
+## :sparkles: What's New in v1.1
+
+| Feature | Description |
+| :------ | :---------- |
+| Auto-detect Smart Context | No more manual `PROJECT_CONTEXT` config -- automatically scans all project memory directories and matches by CWD |
+| Chinese correction detection | `correctionKeywords` now includes 13 Chinese phrases ("不對", "錯了", "改回來", etc.) |
+| `/memory-search` command | Search across all memory files by keyword |
+| Pitfall solutions | Auto Learn now extracts the fix from the conversation, not just the error |
+| Improved session summaries | Summaries now include "What was done" topic extraction, not just raw message lists |
+| Weekly digest | Sessions older than 7 days are auto-merged into weekly digests at `sessions/digest/` |
+
+---
+
 ## The Solution
 
-Memory Engine uses **5 hooks** and **3 commands** to fix all of this.
+Memory Engine uses **5 hooks** and **4 commands** to fix all of this.
 
 ### :link: Hooks
 
@@ -51,6 +65,7 @@ Memory Engine uses **5 hooks** and **3 commands** to fix all of this.
 | `/diary` | Generate a reflection diary -- what was done, learned, and patterns noticed |
 | `/reflect` | Analyze recent diaries and pitfall records, find recurring patterns |
 | `/memory-health` | List all memory files with line counts, last updated dates, and health status |
+| `/memory-search` | Search across all memory files by keyword |
 
 ---
 
@@ -149,17 +164,9 @@ mkdir -p ~/.claude/scripts/hooks
 
 ## :brain: Smart Context
 
-`session-start.js` detects which project you're in based on your working directory (CWD) and loads the relevant memory files.
+`session-start.js` automatically scans all project directories under `~/.claude/projects/` and matches them against your current working directory.
 
-```javascript
-const PROJECT_CONTEXT = [
-  {
-    keywords: ['my-project'],       // CWD contains these keywords
-    name: 'My Project',             // Display name
-    files: ['project-notes.md'],    // Memory files to load
-  },
-];
-```
+No manual configuration needed -- it detects which project you're in and loads the corresponding memory files automatically.
 
 Memory files live in `~/.claude/projects/{project-id}/memory/`.
 
@@ -173,10 +180,12 @@ Memory files live in `~/.claude/projects/{project-id}/memory/`.
 | :----- | :---------------- | :------ |
 | 3+ retries | Same tool called 3+ times on same file | Edit the same file 4 times |
 | Error then fix | Error appears, then same area succeeds | Build fails -> fix code -> build passes |
-| User correction | User says "wrong", "not this", "revert" | "That's not the right file" |
+| User correction | User says "wrong", "revert" (EN) or "不對", "錯了", "改回來" (ZH) | "That's not the right file" |
 | Back-and-forth | Same file edited repeatedly in quick succession | Changed CSS then changed it back |
 
 Detected pitfalls are saved to `~/.claude/skills/learned/auto-pitfall-{date}.md` and reviewed at the start of the next session.
+
+In v1.1, pitfall records also include the **solution** -- the successful fix extracted from the same conversation, so you get both the problem and the answer.
 
 ---
 
@@ -194,6 +203,7 @@ claude-memory-engine/
     diary.md              # /diary reflection diary
     reflect.md            # /reflect reflection analysis
     memory-health.md      # /memory-health memory health check
+    memory-search.md      # /memory-search keyword search across memory
   skill/
     SKILL.md              # Skill definition
     references/
@@ -209,7 +219,7 @@ This Skill is designed to be modified. Common adjustments:
 
 | What to Change | Where |
 | :------------- | :---- |
-| Smart Context mapping | `PROJECT_CONTEXT` in `session-start.js` |
+| Smart Context mapping | Auto-detected in v1.1 (no config needed). Override with `autoDetectProjectContext()` in `session-start.js` |
 | Pitfall detection keywords | `correctionKeywords` in `session-end.js` |
 | Sensitive file patterns | `PROTECTED_PATTERNS` in `write-guard.js` |
 | Session retention count | `MAX_SESSIONS` in `session-end.js` (default: 30) |
