@@ -60,6 +60,30 @@ Every new conversation, Claude forgets everything.
 
 ---
 
+## :dart: What Makes This Different
+
+**Standard features** -- what you'd expect from any memory tool:
+
+- Smart Context: auto-load project-specific memory based on your working directory
+- Auto Learn: detect pitfalls during sessions and save them as reusable skills
+- Session summaries: save what was done, which files changed, key decisions
+
+**Add-ons** -- what Memory Engine does beyond the basics:
+
+| Feature | Description |
+| :------ | :---------- |
+| Memory organization | Hub-and-spoke: MEMORY.md index (200-line cap) + topic files that auto-slim |
+| Health monitoring | Two-tier: `/check` for daily scan, `/full-check` for weekly audit -- both targetable by project |
+| Cross-project tasks | `/todo` tracks pending items across all projects |
+| Disaster recovery | `/recover` restores from GitHub backup when local files are lost |
+| Context management | `/compact-guide` tells you when to compress and when not to |
+| Bilingual commands | Every command in English + Traditional Chinese (28 files), each written natively |
+| Backup & sync | `/backup` and `/sync` with GitHub, bidirectional |
+
+> Not just a notepad -- a filing system with health checks, disaster recovery, and self-maintenance.
+
+---
+
 ## The Solution
 
 Memory Engine uses **5 hooks** and **14 commands** (each with English + Chinese versions) to fix all of this.
