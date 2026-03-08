@@ -3,7 +3,7 @@
 <p align="center">
   <strong>A memory system for Claude Code, built with hooks and markdown.</strong><br>
   No database. No external API. No mysterious binary files.<br>
-  Just <code>.js</code> and <code>.md</code> you can actually read.
+  Just scripts and markdown. Nothing hiding.
 </p>
 
 <p align="center">
@@ -90,6 +90,8 @@ Memory Engine uses **5 hooks** and **14 commands** (each with English + Chinese 
 
 ### :link: Hooks (Automatic)
 
+You don't need to do anything -- these hooks run in the background on their own.
+
 | Hook | When It Runs | What It Does |
 | :--- | :----------- | :----------- |
 | `session-start` | Every new conversation | Loads last session's summary + project-specific memory based on your working directory |
@@ -148,7 +150,19 @@ Every command has an English and Chinese version. Use whichever feels natural.
 
 ## :package: Installation
 
-**Step 1** -- Copy files to their locations:
+**Step 1** -- Create a private GitHub repo for memory backup:
+
+> This step matters. Without a backup repo, `/backup`, `/sync`, and `/recover` won't work -- your memory only lives locally, and if your machine dies, it's gone.
+
+```bash
+# Create a private repo (e.g., "claude-memory")
+gh repo create claude-memory --private
+
+# Clone it locally
+git clone https://github.com/YOUR_USERNAME/claude-memory.git ~/.claude/claude-memory
+```
+
+**Step 2** -- Copy files to their locations:
 
 ```bash
 # Hook scripts
@@ -161,14 +175,14 @@ cp commands/*.md ~/.claude/commands/
 cp -r skill/ ~/.claude/skills/learned/memory-engine/
 ```
 
-**Step 2** -- Create required directories:
+**Step 3** -- Create required directories:
 
 ```bash
 mkdir -p ~/.claude/sessions/diary
 mkdir -p ~/.claude/scripts/hooks
 ```
 
-**Step 3** -- Add hooks config to `~/.claude/settings.json`:
+**Step 4** -- Add hooks config to `~/.claude/settings.json`:
 
 <details>
 <summary><strong>Click to expand full hooks config</strong></summary>
@@ -235,33 +249,23 @@ mkdir -p ~/.claude/scripts/hooks
 
 </details>
 
-**Step 4** -- (Recommended) Create a private GitHub repo for memory backup:
-
-```bash
-# Create a private repo (e.g., "claude-memory")
-gh repo create claude-memory --private
-
-# Clone it locally
-git clone https://github.com/YOUR_USERNAME/claude-memory.git ~/.claude/claude-memory
-```
-
-This enables `/backup`, `/sync`, and `/recover` commands. Without a backup repo, your memory only lives locally -- if your machine dies, your memory dies with it.
-
 **Step 5** -- Restart Claude Code. Done!
 
 ---
 
 ## :brain: Smart Context
 
-`session-start.js` automatically scans all project directories under `~/.claude/projects/` and matches them against your current working directory.
+> Whatever folder you're working in, it automatically loads that project's memory. No setup needed.
 
-No manual configuration needed -- it detects which project you're in and loads the corresponding memory files automatically.
+`session-start.js` automatically scans all project directories under `~/.claude/projects/` and matches them against your current working directory.
 
 Memory files live in `~/.claude/projects/{project-id}/memory/`.
 
 ---
 
 ## :detective: Auto Learn
+
+> When Claude hits a wall and figures it out, it remembers -- so it won't make the same mistake next time.
 
 `session-end.js` automatically scans each conversation for four "pitfall" patterns:
 

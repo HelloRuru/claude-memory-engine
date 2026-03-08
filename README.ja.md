@@ -3,7 +3,7 @@
 <p align="center">
   <strong>Claude Code のためのメモリシステム。hooks と markdown だけで動く。</strong><br>
   データベースも外部 API も不思議なバイナリファイルもない。<br>
-  全部読める <code>.js</code> と <code>.md</code> だけ。
+  コードとドキュメントだけ。何も隠さない。
 </p>
 
 <p align="center">
