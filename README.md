@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.1-C4B7D7?style=flat-square" alt="v1.1">
+  <img src="https://img.shields.io/badge/version-1.2-C4B7D7?style=flat-square" alt="v1.2">
 </p>
 
 <p align="center">
@@ -31,24 +31,40 @@ Every new conversation, Claude forgets everything.
 
 ---
 
-## :sparkles: What's New in v1.1
+## :sparkles: What's New in v1.2
+
+| Feature | Description |
+| :------ | :---------- |
+| 14 commands (was 4) | Full command suite: daily ops, health checks, backup, learning, task tracking |
+| Bilingual commands | Every command has both English and Chinese versions (28 files total) |
+| `/check` + `/full-check` | Two-tier health check system -- quick daily scan and comprehensive weekly audit |
+| `/save` `/reload` `/sync` | Natural-language shortcuts for memory operations (inspired by real daily workflow) |
+| `/learn` | Explicit command for the auto-learn pitfall system |
+| `/todo` | Cross-project task tracking |
+| `/recover` | Disaster recovery when local memory is lost |
+| `/compact-guide` | Smart guide for when to compress context |
+
+<details>
+<summary>v1.1 changes</summary>
 
 | Feature | Description |
 | :------ | :---------- |
 | Auto-detect Smart Context | No more manual `PROJECT_CONTEXT` config -- automatically scans all project memory directories and matches by CWD |
-| Chinese correction detection | `correctionKeywords` now includes 13 Chinese phrases ("不對", "錯了", "改回來", etc.) |
+| Chinese correction detection | `correctionKeywords` now includes 13 Chinese phrases |
 | `/memory-search` command | Search across all memory files by keyword |
 | Pitfall solutions | Auto Learn now extracts the fix from the conversation, not just the error |
-| Improved session summaries | Summaries now include "What was done" topic extraction, not just raw message lists |
-| Weekly digest | Sessions older than 7 days are auto-merged into weekly digests at `sessions/digest/` |
+| Improved session summaries | Summaries now include "What was done" topic extraction |
+| Weekly digest | Sessions older than 7 days are auto-merged into weekly digests |
+
+</details>
 
 ---
 
 ## The Solution
 
-Memory Engine uses **5 hooks** and **4 commands** to fix all of this.
+Memory Engine uses **5 hooks** and **14 commands** (each with English + Chinese versions) to fix all of this.
 
-### :link: Hooks
+### :link: Hooks (Automatic)
 
 | Hook | When It Runs | What It Does |
 | :--- | :----------- | :----------- |
@@ -60,12 +76,49 @@ Memory Engine uses **5 hooks** and **4 commands** to fix all of this.
 
 ### :speech_balloon: Commands
 
-| Command | Function |
-| :------ | :------- |
-| `/diary` | Generate a reflection diary -- what was done, learned, and patterns noticed |
-| `/reflect` | Analyze recent diaries and pitfall records, find recurring patterns |
-| `/memory-health` | List all memory files with line counts, last updated dates, and health status |
-| `/memory-search` | Search across all memory files by keyword |
+Every command has an English and Chinese version. Use whichever feels natural.
+
+**Daily Operations** -- the basics you'll use every day
+
+| EN | ZH | Function |
+| :- | :- | :------- |
+| `/save` | `/存記憶` | Save information across sessions -- dedup, route to the right file, never lose context |
+| `/reload` | `/讀取` | Load memory files into the current conversation for full-detail access |
+| `/todo` | `/待辦` | Cross-project task tracker -- list pending items, suggest next steps |
+| `/backup` | `/備份` | Push local memory to GitHub backup repository |
+| `/sync` | `/同步` | Bidirectional sync -- push local changes, pull remote updates |
+
+> In plain English: "Remember this for next time" -> `/save`. "What was I working on?" -> `/reload`. "What's left to do?" -> `/todo`. Done for the day, don't want to lose anything -> `/backup`.
+
+**Reflection & Learning** -- help Claude get better over time
+
+| EN | ZH | Function |
+| :- | :- | :------- |
+| `/diary` | `/回顧` | Generate a reflection diary -- what was done, learned, and patterns noticed |
+| `/reflect` | `/反思` | Analyze recent diaries and pitfall records, find recurring patterns |
+| `/learn` | `/學習` | Save pitfall experiences -- wrong approaches tried, eventual solutions found |
+
+> In plain English: Had a productive session? -> `/diary`. End of the week, want to spot recurring mistakes? -> `/reflect`. Just spent 30 minutes debugging something dumb? -> `/learn` (actually, Claude auto-detects big pitfalls and saves them without being asked).
+
+**Health Checks** -- make sure the memory system is working
+
+| EN | ZH | Function |
+| :- | :- | :------- |
+| `/check` | `/健檢` | Quick health check -- memory capacity, broken links, orphan files, environment status |
+| `/full-check` | `/大健檢` | Comprehensive audit -- everything in `/check` plus commands, cross-references, git repos, environment config |
+| `/memory-health` | `/記憶健檢` | Focused check on memory file line counts, update dates, and capacity warnings |
+
+> In plain English: Claude seems off, giving weird answers? -> `/check`. Weekly one-minute full-body scan -> `/full-check`. Just want to know if memory is getting full -> `/memory-health`. All three accept a target, e.g. `/check blog` to only scan blog-related files.
+
+**Search & Maintenance** -- find things + emergency recovery
+
+| EN | ZH | Function |
+| :- | :- | :------- |
+| `/memory-search` | `/搜尋記憶` | Search across all memory files by keyword |
+| `/recover` | `/想起來` | Disaster recovery -- restore memory from GitHub backup when local files are lost |
+| `/compact-guide` | `/壓縮建議` | Smart guide for when to use `/compact` and when not to |
+
+> In plain English: "I saved something about this before, where is it?" -> `/memory-search`. New computer or lost your memory files -> `/recover` (requires a GitHub backup repo set up beforehand). Conversation getting slow and long -> `/compact-guide`.
 
 ---
 
@@ -158,7 +211,19 @@ mkdir -p ~/.claude/scripts/hooks
 
 </details>
 
-**Step 4** -- Restart Claude Code. Done!
+**Step 4** -- (Recommended) Create a private GitHub repo for memory backup:
+
+```bash
+# Create a private repo (e.g., "claude-memory")
+gh repo create claude-memory --private
+
+# Clone it locally
+git clone https://github.com/YOUR_USERNAME/claude-memory.git ~/.claude/claude-memory
+```
+
+This enables `/backup`, `/sync`, and `/recover` commands. Without a backup repo, your memory only lives locally -- if your machine dies, your memory dies with it.
+
+**Step 5** -- Restart Claude Code. Done!
 
 ---
 
@@ -194,21 +259,35 @@ In v1.1, pitfall records also include the **solution** -- the successful fix ext
 ```
 claude-memory-engine/
   hooks/
-    session-start.js      # New session -> load recall + smart-context
-    session-end.js        # Session end -> save summary + detect pitfalls
-    memory-sync.js        # Every message -> cross-session memory sync
-    write-guard.js        # Before file write -> sensitive file warning
-    pre-push-check.js     # Before git push -> safety check
+    session-start.js        # New session -> load recall + smart-context
+    session-end.js          # Session end -> save summary + detect pitfalls
+    memory-sync.js          # Every message -> cross-session memory sync
+    write-guard.js          # Before file write -> sensitive file warning
+    pre-push-check.js       # Before git push -> safety check
   commands/
-    diary.md              # /diary reflection diary
-    reflect.md            # /reflect reflection analysis
-    memory-health.md      # /memory-health memory health check
-    memory-search.md      # /memory-search keyword search across memory
+    # Daily Operations
+    save.md / 存記憶.md      # Save memory across sessions
+    reload.md / 讀取.md      # Load memory into context
+    todo.md / 待辦.md        # Cross-project task tracker
+    backup.md / 備份.md      # Push memory to GitHub
+    sync.md / 同步.md        # Bidirectional sync
+    # Reflection & Learning
+    diary.md / 回顧.md       # Reflection diary
+    reflect.md / 反思.md     # Pattern analysis
+    learn.md / 學習.md       # Auto-learn from mistakes
+    # Health Checks
+    check.md / 健檢.md       # Quick health check
+    full-check.md / 大健檢.md # Comprehensive audit
+    memory-health.md / 記憶健檢.md  # Memory capacity check
+    # Search & Recovery
+    memory-search.md / 搜尋記憶.md  # Keyword search
+    recover.md / 想起來.md    # Disaster recovery
+    compact-guide.md / 壓縮建議.md  # Context compression guide
   skill/
-    SKILL.md              # Skill definition
+    SKILL.md                # Skill definition
     references/
-      smart-context.md    # CWD to memory file mapping
-      auto-learn.md       # Pitfall detection rules
+      smart-context.md      # CWD to memory file mapping
+      auto-learn.md         # Pitfall detection rules
 ```
 
 ---

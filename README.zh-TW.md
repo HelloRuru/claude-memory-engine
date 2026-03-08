@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.1-C4B7D7?style=flat-square" alt="v1.1">
+  <img src="https://img.shields.io/badge/version-1.2-C4B7D7?style=flat-square" alt="v1.2">
 </p>
 
 <p align="center">
@@ -31,24 +31,40 @@
 
 ---
 
-## :sparkles: v1.1 新功能
+## :sparkles: v1.2 新功能
 
 | 功能 | 說明 |
 | :--- | :--- |
-| Smart Context 自動偵測 | 不用再手動設定 `PROJECT_CONTEXT`，自動掃描所有專案的記憶目錄，根據工作目錄配對 |
-| 中文糾正偵測 | 踩坑偵測現在認得 13 個中文詞（「不對」「錯了」「改回來」等） |
+| 14 個指令（原本 4 個） | 完整指令集：日常操作、健檢、備份、學習、待辦追蹤 |
+| 雙語指令 | 每個指令都有英文 + 中文版（共 28 個檔案） |
+| `/check` + `/full-check` | 兩階段健檢 — 日常快速掃描 + 每週完整稽核 |
+| `/save` `/reload` `/sync` | 記憶操作的自然語言快捷指令（從實際日常工作流提煉） |
+| `/learn` | 踩坑自動學習的獨立指令 |
+| `/todo` | 跨專案待辦追蹤 |
+| `/recover` | 本地記憶遺失時的災難恢復 |
+| `/compact-guide` | 什麼時候該壓縮 context 的判斷指南 |
+
+<details>
+<summary>v1.1 變更</summary>
+
+| 功能 | 說明 |
+| :--- | :--- |
+| Smart Context 自動偵測 | 不用再手動設定 `PROJECT_CONTEXT`，自動掃描所有專案的記憶目錄 |
+| 中文糾正偵測 | 踩坑偵測認得 13 個中文詞 |
 | `/memory-search` 指令 | 用關鍵字搜尋所有記憶檔案 |
-| 踩坑含解法 | 踩坑紀錄現在會自動從對話中抓出解法，不只記錯誤 |
-| Session 摘要改版 | 摘要現在包含「做了什麼」主題摘錄，不再只是原始訊息列表 |
-| 每週自動週報 | 超過 7 天的 session 自動合併成週報，存到 `sessions/digest/` |
+| 踩坑含解法 | 踩坑紀錄自動從對話中抓出解法 |
+| Session 摘要改版 | 包含「做了什麼」主題摘錄 |
+| 每週自動週報 | 超過 7 天的 session 自動合併成週報 |
+
+</details>
 
 ---
 
 ## 怎麼解決
 
-Memory Engine 用 **5 個 hooks** 和 **4 個指令** 搞定這些問題。
+Memory Engine 用 **5 個 hooks** 和 **14 個指令**（每個都有英文 + 中文版）搞定這些問題。
 
-### :link: Hooks
+### :link: Hooks（自動執行）
 
 | Hook | 什麼時候跑 | 做什麼 |
 | :--- | :--------- | :----- |
@@ -60,12 +76,49 @@ Memory Engine 用 **5 個 hooks** 和 **4 個指令** 搞定這些問題。
 
 ### :speech_balloon: 指令
 
-| 指令 | 功能 |
-| :--- | :--- |
-| `/diary` | 從對話產生反思日記 — 做了什麼、學到什麼、發現什麼規律 |
-| `/reflect` | 分析最近的日記和踩坑紀錄，找出重複的模式，提出改善建議 |
-| `/memory-health` | 列出所有記憶檔案的行數、更新時間、健康狀態 |
-| `/memory-search` | 用關鍵字搜尋所有記憶檔案 |
+每個指令都有英文和中文版，用哪個都行。
+
+**日常操作** — 每天都會用到的基本功
+
+| 中文 | EN | 功能 |
+| :--- | :- | :--- |
+| `/存記憶` | `/save` | 跨 session 存記憶 — 自動去重複、分類歸檔，不會弄丟上下文 |
+| `/讀取` | `/reload` | 把記憶檔案完整載入目前的對話，讓 Claude 能引用細節 |
+| `/待辦` | `/todo` | 跨專案待辦追蹤 — 列出未完成項目、建議下一步 |
+| `/備份` | `/backup` | 把本地記憶推到 GitHub 備份 |
+| `/同步` | `/sync` | 雙向同步 — 推本地變更、拉遠端更新 |
+
+> 白話文：「這件事下次還要用」→ `/存記憶`。「剛開新對話，幫我想起來上次在幹嘛」→ `/讀取`。「今天要做什麼」→ `/待辦`。做完一個段落，怕電腦壞掉 → `/備份`。
+
+**反思與學習** — 讓 Claude 自己進步
+
+| 中文 | EN | 功能 |
+| :--- | :- | :--- |
+| `/回顧` | `/diary` | 從對話產生反思日記 — 做了什麼、學到什麼、發現什麼規律 |
+| `/反思` | `/reflect` | 分析最近的日記和踩坑紀錄，找出重複的模式，提出改善建議 |
+| `/學習` | `/learn` | 存踩坑經驗 — 走過的錯路、最後找到的解法 |
+
+> 白話文：今天聊完覺得有收穫 → `/回顧`。一週過去了，想看看有沒有一直重複的問題 → `/反思`。剛踩了一個大坑，花了半小時才解決 → `/學習`（其實 Claude 遇到大坑時會自己存，不用你動手）。
+
+**健檢** — 定期檢查記憶系統有沒有問題
+
+| 中文 | EN | 功能 |
+| :--- | :- | :--- |
+| `/健檢` | `/check` | 小健檢 — 記憶容量、斷鏈、孤兒檔案、環境狀態 |
+| `/大健檢` | `/full-check` | 完整稽核 — 小健檢全部 + 指令層、交叉引用、Git repo、環境設定 |
+| `/記憶健檢` | `/memory-health` | 專看記憶檔案的行數、更新日期、容量警告 |
+
+> 白話文：覺得 Claude 怪怪的，反應不對 → `/健檢`。每週花一分鐘做個全身檢查 → `/大健檢`。想知道記憶快不快滿了 → `/記憶健檢`。三個都可以加目標，例如 `/健檢 blog` 只看 blog 相關的。
+
+**搜尋與維護** — 找東西 + 緊急狀況
+
+| 中文 | EN | 功能 |
+| :--- | :- | :--- |
+| `/搜尋記憶` | `/memory-search` | 用關鍵字搜尋所有記憶檔案 |
+| `/想起來` | `/recover` | 災難恢復 — 本地記憶遺失時從 GitHub 備份還原 |
+| `/壓縮建議` | `/compact-guide` | 什麼時候該用 `/compact`、什麼時候不該用的判斷指南 |
+
+> 白話文：「我之前有記過一個東西，忘記放在哪」→ `/搜尋記憶`。換新電腦或記憶檔案不見了 → `/想起來`（前提是你之前有用 `/備份` 推到 GitHub）。對話越來越長越來越慢 → `/壓縮建議`。
 
 ---
 
@@ -158,7 +211,19 @@ mkdir -p ~/.claude/scripts/hooks
 
 </details>
 
-**步驟 4** — 重新啟動 Claude Code。搞定！
+**步驟 4**（建議）— 建立一個 private GitHub repo 作為記憶備份：
+
+```bash
+# 建立 private repo（例如 "claude-memory"）
+gh repo create claude-memory --private
+
+# Clone 到本地
+git clone https://github.com/你的帳號/claude-memory.git ~/.claude/claude-memory
+```
+
+這樣才能用 `/備份`、`/同步`、`/想起來` 這些指令。沒有備份 repo 的話，你的記憶只存在本地 — 電腦壞了，記憶就跟著消失了。
+
+**步驟 5** — 重新啟動 Claude Code。搞定！
 
 ---
 
@@ -194,21 +259,35 @@ v1.1 起，踩坑紀錄會同時包含**解法** — 從同一次對話中自動
 ```
 claude-memory-engine/
   hooks/
-    session-start.js      # 開新對話 -> 載入回憶 + smart-context
-    session-end.js        # 對話結束 -> 存摘要 + 踩坑偵測
-    memory-sync.js        # 每則訊息 -> 跨 session 記憶同步
-    write-guard.js        # 寫入檔案前 -> 敏感檔案警告
-    pre-push-check.js     # git push 前 -> 安全檢查
+    session-start.js          # 開新對話 -> 載入回憶 + smart-context
+    session-end.js            # 對話結束 -> 存摘要 + 踩坑偵測
+    memory-sync.js            # 每則訊息 -> 跨 session 記憶同步
+    write-guard.js            # 寫入檔案前 -> 敏感檔案警告
+    pre-push-check.js         # git push 前 -> 安全檢查
   commands/
-    diary.md              # /diary 反思日記
-    reflect.md            # /reflect 反思分析
-    memory-health.md      # /memory-health 記憶健檢
-    memory-search.md      # /memory-search 關鍵字搜尋記憶
+    # 日常操作
+    save.md / 存記憶.md        # 跨 session 存記憶
+    reload.md / 讀取.md        # 讀取記憶到 context
+    todo.md / 待辦.md          # 跨專案待辦
+    backup.md / 備份.md        # 推到 GitHub
+    sync.md / 同步.md          # 雙向同步
+    # 反思與學習
+    diary.md / 回顧.md         # 反思日記
+    reflect.md / 反思.md       # 規律分析
+    learn.md / 學習.md         # 踩坑學習
+    # 健檢
+    check.md / 健檢.md         # 小健檢
+    full-check.md / 大健檢.md   # 大健檢（完整稽核）
+    memory-health.md / 記憶健檢.md  # 記憶容量檢查
+    # 搜尋與恢復
+    memory-search.md / 搜尋記憶.md  # 關鍵字搜尋
+    recover.md / 想起來.md      # 災難恢復
+    compact-guide.md / 壓縮建議.md  # context 壓縮指南
   skill/
-    SKILL.md              # Skill 定義
+    SKILL.md                  # Skill 定義
     references/
-      smart-context.md    # CWD 到記憶檔的對應表
-      auto-learn.md       # 踩坑偵測規則
+      smart-context.md        # CWD 到記憶檔的對應表
+      auto-learn.md           # 踩坑偵測規則
 ```
 
 ---
