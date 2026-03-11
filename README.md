@@ -37,7 +37,7 @@ Every new conversation, Claude forgets everything.
 
 | Feature | Description |
 | :------ | :---------- |
-| Learning Loop (8 steps) | Automatic note-taking (SessionEnd) -> link notes by project -> find patterns -> review + organize -> refine -> re-analyze -> slim down -> wrap up. First 3 steps are automatic, last 5 triggered by `/reflect` |
+| Learning Loop (8 steps) | **Class notes**: auto-record key points -> link by project -> find patterns (first 3 steps, runs automatically after each session). **Final exam review**: review + organize -> refine -> re-study -> slim down -> wrap up (last 5 steps, triggered by `/reflect`) |
 | Mid-session checkpoint | Every 20 messages, auto-saves a checkpoint with mini-analysis (top actions + project names) |
 | `/reflect` auto-reminder | SessionStart checks when you last ran `/reflect`. If it's been 7+ days, nudges you |
 | Recurring pitfall alert | Same mistake 3+ times across different days? SessionStart suggests writing it into permanent rules |
