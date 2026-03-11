@@ -36,23 +36,23 @@ Every new conversation, Claude forgets everything.
 > Think of it like exam prep. I'm trying to make Claude Code act like a student cramming for finals -- take notes after every class, organize them, review for patterns, build an error notebook, and do a big end-of-term review. Each cycle, it gets a little better.
 
 | Feature | Description |
-| :------ | :---------- |
-| Learning Loop (8 steps) | **Class notes**: auto-record key points -> link by project -> find patterns (first 3 steps, runs automatically after each session). **Final exam review**: review + organize -> refine -> re-study -> slim down -> wrap up (last 5 steps, triggered by `/reflect`) |
-| Mid-session checkpoint | Every 20 messages, auto-saves a checkpoint with mini-analysis (top actions + project names) |
-| `/reflect` auto-reminder | SessionStart checks when you last ran `/reflect`. If it's been 7+ days, nudges you |
-| Recurring pitfall alert | Same mistake 3+ times across different days? SessionStart suggests writing it into permanent rules |
-| Tree-shaped data decisions | `/reflect` step 5 now uses 4 questions instead of mechanical merging: Should it grow? -> Can it be condensed? -> Already covered by existing rules? -> Delete only as last resort |
-| SessionEnd bug fixes | Fixed transcript parser (was broken since v1.0), added IDE noise filtering, 5-layer project tag detection, raised pitfall threshold to 5 |
+| :--- | :--- |
+| Loop | **Class notes**: auto-record key points -> link by project -> find patterns (first 3 steps, automatic). **Exam review**: review -> refine -> re-study -> slim down -> wrap up (last 5 steps, `/reflect`) |
+| Checkpoint | Every 20 messages, auto-saves a mid-session checkpoint with mini-analysis (top actions + project names) |
+| Reminder | SessionStart checks when you last ran `/reflect`. If 7+ days, nudges you |
+| Pitfall | Same mistake 3+ times across different days? Suggests writing it into permanent rules |
+| 4 Questions | `/reflect` step 5 uses 4 questions: Should it grow? -> Condense? -> Already covered? -> Delete only as last resort |
+| Bug fixes | Fixed transcript parser (broken since v1.0), IDE noise filtering, raised pitfall threshold to 5 |
 
 <details>
 <summary>v1.2 changes</summary>
 
 | Feature | Description |
 | :------ | :---------- |
-| 14 commands (was 4) | Full command suite: daily ops, health checks, backup, learning, task tracking |
-| Bilingual commands | Every command has both English and Chinese versions (28 files total) |
-| `/check` + `/full-check` | Two-tier health check system -- quick daily scan and comprehensive weekly audit |
-| `/save` `/reload` `/sync` | Natural-language shortcuts for memory operations (inspired by real daily workflow) |
+| 14 commands | Full command suite: daily ops, health checks, backup, learning, task tracking |
+| Bilingual | Every command has both English and Chinese versions (28 files total) |
+| Health checks | `/check` daily scan + `/full-check` weekly audit |
+| Shortcuts | `/save` `/reload` `/sync` -- natural-language memory operations |
 | `/learn` | Explicit command for the auto-learn pitfall system |
 | `/todo` | Cross-project task tracking |
 | `/recover` | Disaster recovery when local memory is lost |
@@ -65,11 +65,11 @@ Every new conversation, Claude forgets everything.
 
 | Feature | Description |
 | :------ | :---------- |
-| Auto-detect Smart Context | No more manual `PROJECT_CONTEXT` config -- automatically scans all project memory directories and matches by CWD |
-| Chinese correction detection | `correctionKeywords` now includes 13 Chinese phrases |
-| `/memory-search` command | Search across all memory files by keyword |
-| Pitfall solutions | Auto Learn now extracts the fix from the conversation, not just the error |
-| Improved session summaries | Summaries now include "What was done" topic extraction |
+| Auto-detect | Smart Context no longer needs manual config -- auto-scans project memory dirs, matches by CWD |
+| Chinese keywords | `correctionKeywords` now includes 13 Chinese phrases |
+| Search | `/memory-search` searches across all memory files by keyword |
+| Solutions | Auto Learn now extracts the fix from the conversation, not just the error |
+| Summaries | Now include "What was done" topic extraction |
 | Weekly digest | Sessions older than 7 days are auto-merged into weekly digests |
 
 </details>
@@ -88,13 +88,13 @@ Every new conversation, Claude forgets everything.
 
 | Feature | Description |
 | :------ | :---------- |
-| Memory organization | Hub-and-spoke: MEMORY.md index (200-line cap) + topic files that auto-slim |
-| Health monitoring | Two-tier: `/check` for daily scan, `/full-check` for weekly audit -- both targetable by project |
-| Cross-project tasks | `/todo` tracks pending items across all projects |
-| Disaster recovery | `/recover` restores from GitHub backup when local files are lost |
-| Context management | `/compact-guide` tells you when to compress and when not to |
-| Bilingual commands | Every command in English + Traditional Chinese (28 files), each written natively |
-| Backup & sync | `/backup` and `/sync` with GitHub, bidirectional |
+| Organization | Hub-and-spoke: MEMORY.md index (200-line cap) + topic files that auto-slim |
+| Health | Two-tier: `/check` daily scan + `/full-check` weekly audit -- both targetable by project |
+| Tasks | `/todo` tracks pending items across all projects |
+| Recovery | `/recover` restores from GitHub backup when local files are lost |
+| Context | `/compact-guide` tells you when to compress and when not to |
+| Bilingual | Every command in English + Traditional Chinese (28 files), each written natively |
+| Backup | `/backup` and `/sync` with GitHub, bidirectional |
 | Student Loop | 8-step learning cycle: notes -> link -> learn -> review -> refine -> re-learn -> slim -> conclude. Like exam prep for AI |
 
 > Not just a notepad -- a filing system with health checks, disaster recovery, and self-maintenance.
@@ -354,12 +354,12 @@ claude-memory-engine/
 
 This Skill is designed to be modified. Common adjustments:
 
-| What to Change | Where |
-| :------------- | :---- |
-| Smart Context mapping | Auto-detected in v1.1 (no config needed). Override with `autoDetectProjectContext()` in `session-start.js` |
-| Pitfall detection keywords | `correctionKeywords` in `session-end.js` |
-| Sensitive file patterns | `PROTECTED_PATTERNS` in `write-guard.js` |
-| Session retention count | `MAX_SESSIONS` in `session-end.js` (default: 30) |
+| What | Where |
+| :--- | :---- |
+| Context map | Auto-detected in v1.1 (no config needed). Override in `session-start.js` |
+| Keywords | `correctionKeywords` in `session-end.js` |
+| Sensitive files | `PROTECTED_PATTERNS` in `write-guard.js` |
+| Retention | `MAX_SESSIONS` in `session-end.js` (default: 30) |
 
 ---
 
