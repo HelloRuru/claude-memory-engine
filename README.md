@@ -1,9 +1,14 @@
 <h1 align="center">Claude Memory Engine</h1>
 
 <p align="center">
-  <strong>A memory system for Claude Code, built with hooks and markdown.</strong><br>
-  No database. No external API. No mysterious binary files.<br>
-  Just scripts and markdown. Nothing hiding.
+  <strong>Not just memory — it learns.</strong><br>
+  Learn from mistakes. Learn to improve.<br>
+  AI can be a student too, growing through every cycle.
+</p>
+
+<p align="center">
+  Built with hooks and markdown. No database. No external API.<br>
+  Just scripts and files. Nothing hiding.
 </p>
 
 <p align="center">
@@ -20,190 +25,166 @@
 
 ---
 
-## The Problem
+## WHAT — Every new conversation, Claude starts from zero
 
-Every new conversation, Claude forgets everything.
+- That bug you spent 30 minutes on last session — it hits the same wall again
+- Your preferences, your project rules — gone the moment a new session starts
+- Switch from Project A to Project B — it can't tell which is which
+- Long conversations get fuzzy — important decisions vanish after compression
+- Memory files pile up — no one organizes them, they just keep growing
+- Your computer dies — local memory gone, no backup
 
-- You spent 30 minutes debugging something last session -- this session it makes the exact same mistake
-- You told it to "remember" something -- next session it's gone
-- You're working on Project A, switch to Project B -- it still thinks you're talking about A
-- Long sessions get compressed -- important decisions disappear
+Memory tools can help it "remember." But remembering is not the same as learning.
 
 ---
 
-## :sparkles: What's New in v1.3: The Student Loop
+## WHY — Because it learns
 
-> Think of it like exam prep. I'm trying to make Claude Code act like a student cramming for finals -- take notes after every class, organize them, review for patterns, build an error notebook, and do a big end-of-term review. Each cycle, it gets a little better.
+Memory Engine doesn't just help Claude remember — it teaches Claude to learn like a student:
+
+- Mistakes don't repeat — it saves both the problem and the fix
+- Switching projects doesn't mean starting over — it knows what you're working on
+- It gets better over time — each cycle, it understands you a little more
+- You can see how it learns — everything is markdown and JS, no black box
+
+---
+
+## HOW — Through the Student Loop
+
+- **Student Loop** — 8-step learning cycle, like cramming for finals but it keeps getting better
+- **Smart Context** — auto-loads the right project's memory based on your working directory
+- **Auto Learn** — saves both the problem and the fix when it hits a wall, won't repeat the same mistake
+
+### :brain: The Student Loop
+
+> Think of it like exam prep. I'm trying to make Claude Code act like a student cramming for finals — take notes after every class, organize them, review for patterns, build an error notebook, and do a big end-of-term review. Each cycle, it gets a little better.
+
+**In class (automatic, runs every session)**
+
+At the end of every conversation, Claude automatically does three things:
+
+1. **Takes notes** — records what was done, which files changed, key decisions made
+2. **Links them** — tags the project, connects to previous notes
+3. **Spots patterns** — scans the conversation for pitfall signals (retrying the same thing 5+ times, errors followed by fixes, user corrections, back-and-forth edits)
+
+Every 20 messages, it also saves a mid-session checkpoint — so nothing important gets lost when long conversations are compressed.
+
+**Final exam review (manual, run `/reflect`)**
+
+After a few days of notes, run `/reflect` and Claude will:
+
+4. **Review** — read the past 7 days of notes and pitfall records, mark what's still useful and what's outdated
+5. **Refine** — apply four decision questions: Keep it? -> Condense it? -> Already covered by a rule? -> Delete only as last resort
+6. **Re-study** — re-analyze the cleaned-up data to find patterns that were buried in noise
+7. **Slim down** — list items that can be removed, wait for your confirmation before deleting anything
+8. **Wrap up** — produce a report: what was learned, what changed, what to watch for next cycle
+
+> This isn't a one-time thing. Each cycle makes the notes sharper, the patterns clearer, the mistakes fewer. It's a loop that keeps improving.
+
+### :detective: Smart Context + Auto Learn
+
+**Smart Context** — whatever folder you're working in, it loads that project's memory. No config, no manual switching.
+
+**Auto Learn** — hit a wall during a session and figured it out? It saves both the problem and the fix, then reminds itself next time. If the same kind of mistake shows up 3+ times across different days, it suggests writing it into permanent rules.
+
+### :link: Day-to-day tools
+
+Memory and learning are the core, but day-to-day work needs more:
 
 | Feature | Description |
 | :--- | :--- |
-| Loop | **Class notes**: auto-record key points -> link by project -> find patterns (first 3 steps, automatic). **Exam review**: review -> refine -> re-study -> slim down -> wrap up (last 5 steps, `/reflect`) |
-| Checkpoint | Every 20 messages, auto-saves a mid-session checkpoint with mini-analysis (top actions + project names) |
-| Reminder | SessionStart checks when you last ran `/reflect`. If 7+ days, nudges you |
-| Pitfall | Same mistake 3+ times across different days? Suggests writing it into permanent rules |
-| 4 Questions | `/reflect` step 5 uses 4 questions: Should it grow? -> Condense? -> Already covered? -> Delete only as last resort |
-| Bug fixes | Fixed transcript parser (broken since v1.0), IDE noise filtering, raised pitfall threshold to 5 |
-
-<details>
-<summary>v1.2 changes</summary>
-
-| Feature | Description |
-| :------ | :---------- |
-| 14 commands | Full command suite: daily ops, health checks, backup, learning, task tracking |
-| Bilingual | Every command has both English and Chinese versions (28 files total) |
-| Health checks | `/check` daily scan + `/full-check` weekly audit |
-| Shortcuts | `/save` `/reload` `/sync` -- natural-language memory operations |
-| `/learn` | Explicit command for the auto-learn pitfall system |
-| `/todo` | Cross-project task tracking |
-| `/recover` | Disaster recovery when local memory is lost |
-| `/compact-guide` | Smart guide for when to compress context |
-
-</details>
-
-<details>
-<summary>v1.1 changes</summary>
-
-| Feature | Description |
-| :------ | :---------- |
-| Auto-detect | Smart Context no longer needs manual config -- auto-scans project memory dirs, matches by CWD |
-| Chinese keywords | `correctionKeywords` now includes 13 Chinese phrases |
-| Search | `/memory-search` searches across all memory files by keyword |
-| Solutions | Auto Learn now extracts the fix from the conversation, not just the error |
-| Summaries | Now include "What was done" topic extraction |
-| Weekly digest | Sessions older than 7 days are auto-merged into weekly digests |
-
-</details>
-
----
-
-## :dart: What Makes This Different
-
-**Standard features** -- what you'd expect from any memory tool:
-
-- Smart Context: auto-load project-specific memory based on your working directory
-- Auto Learn: detect pitfalls during sessions and save them as reusable skills
-- Session summaries: save what was done, which files changed, key decisions
-
-**Add-ons** -- what Memory Engine does beyond the basics:
-
-| Feature | Description |
-| :------ | :---------- |
-| Organization | Hub-and-spoke: MEMORY.md index (200-line cap) + topic files that auto-slim |
-| Health | Two-tier: `/check` daily scan + `/full-check` weekly audit -- both targetable by project |
+| Health | `/check` daily scan + `/full-check` weekly audit to keep the memory system healthy |
 | Tasks | `/todo` tracks pending items across all projects |
-| Recovery | `/recover` restores from GitHub backup when local files are lost |
-| Context | `/compact-guide` tells you when to compress and when not to |
-| Bilingual | Every command in English + Traditional Chinese (28 files), each written natively |
-| Backup | `/backup` and `/sync` with GitHub, bidirectional |
-| Student Loop | 8-step learning cycle: notes -> link -> learn -> review -> refine -> re-learn -> slim -> conclude. Like exam prep for AI |
+| Backup | `/backup` `/sync` connect to GitHub — bidirectional sync, safe even if your machine dies |
+| Recovery | `/recover` restores lost memory from GitHub backup |
+| Search | `/memory-search` keyword search across all memory files |
+| Bilingual | Every command has an English + Traditional Chinese version (28 files) |
 
-> Not just a notepad -- a filing system with health checks, disaster recovery, and self-maintenance.
+<details>
+<summary><strong>Full command list</strong></summary>
 
----
-
-## The Solution
-
-Memory Engine uses **7 hooks** and **14 commands** (each with English + Chinese versions) to fix all of this.
-
-### :link: Hooks (Automatic)
-
-You don't need to do anything -- these hooks run in the background on their own.
-
-| Hook | When It Runs | What It Does |
-| :--- | :----------- | :----------- |
-| `session-start` | Every new conversation | Loads last session's summary + project-specific memory based on your working directory |
-| `session-end` | Every conversation end | Saves what you did, which files changed, and scans for pitfall patterns |
-| `memory-sync` | Every message you send | Detects if memory files were updated by another session, shows what changed |
-| `write-guard` | Before every file write | Warns when writing to `.env`, `credentials`, or other sensitive files |
-| `mid-session-checkpoint` | Every 20 messages | Saves a mid-conversation checkpoint with mini-analysis of what you've been doing |
-| `pre-push-check` | Before every git push | Checks staged files for secrets, extra warning on force push |
-
-### :speech_balloon: Commands
-
-Every command has an English and Chinese version. Use whichever feels natural.
-
-**Daily Operations** -- the basics you'll use every day
+**Daily Operations**
 
 | EN | ZH | Function |
-| :- | :- | :------- |
-| `/save` | `/存記憶` | Save information across sessions -- dedup, route to the right file, never lose context |
-| `/reload` | `/讀取` | Load memory files into the current conversation for full-detail access |
-| `/todo` | `/待辦` | Cross-project task tracker -- list pending items, suggest next steps |
-| `/backup` | `/備份` | Push local memory to GitHub backup repository |
-| `/sync` | `/同步` | Bidirectional sync -- push local changes, pull remote updates |
+| :--- | :- | :--- |
+| `/save` | `/存記憶` | Save memory across sessions — auto-dedup and route to the right file |
+| `/reload` | `/讀取` | Load memory into the current conversation |
+| `/todo` | `/待辦` | Cross-project task tracking |
+| `/backup` | `/備份` | Push local memory to GitHub |
+| `/sync` | `/同步` | Bidirectional sync — push local, pull remote |
 
-> In plain English: "Remember this for next time" -> `/save`. "What was I working on?" -> `/reload`. "What's left to do?" -> `/todo`. Done for the day, don't want to lose anything -> `/backup`.
-
-**Reflection & Learning** -- help Claude get better over time
+**Reflection & Learning**
 
 | EN | ZH | Function |
-| :- | :- | :------- |
-| `/diary` | `/回顧` | Generate a reflection diary -- what was done, learned, and patterns noticed |
-| `/reflect` | `/反思` | Analyze recent diaries and pitfall records, find recurring patterns |
-| `/learn` | `/學習` | Save pitfall experiences -- wrong approaches tried, eventual solutions found |
+| :--- | :- | :--- |
+| `/diary` | `/回顧` | Generate a reflection diary |
+| `/reflect` | `/反思` | Analyze pitfall records and find recurring patterns |
+| `/learn` | `/學習` | Manually save a pitfall experience |
 
-> In plain English: Had a productive session? -> `/diary`. End of the week, want to spot recurring mistakes? -> `/reflect`. Just spent 30 minutes debugging something dumb? -> `/learn` (actually, Claude auto-detects big pitfalls and saves them without being asked).
-
-**Health Checks** -- make sure the memory system is working
+**Health Checks**
 
 | EN | ZH | Function |
-| :- | :- | :------- |
-| `/check` | `/健檢` | Quick health check -- memory capacity, broken links, orphan files, environment status |
-| `/full-check` | `/大健檢` | Comprehensive audit -- everything in `/check` plus commands, cross-references, git repos, environment config |
-| `/memory-health` | `/記憶健檢` | Focused check on memory file line counts, update dates, and capacity warnings |
+| :--- | :- | :--- |
+| `/check` | `/健檢` | Quick scan — capacity, broken links, orphan files |
+| `/full-check` | `/大健檢` | Full audit — commands, git repos, environment config |
+| `/memory-health` | `/記憶健檢` | Memory file line counts, update dates, capacity warnings |
 
-> In plain English: Claude seems off, giving weird answers? -> `/check`. Weekly one-minute full-body scan -> `/full-check`. Just want to know if memory is getting full -> `/memory-health`. All three accept a target, e.g. `/check blog` to only scan blog-related files.
-
-**Search & Maintenance** -- find things + emergency recovery
+**Search & Maintenance**
 
 | EN | ZH | Function |
-| :- | :- | :------- |
-| `/memory-search` | `/搜尋記憶` | Search across all memory files by keyword |
-| `/recover` | `/想起來` | Disaster recovery -- restore memory from GitHub backup when local files are lost |
-| `/compact-guide` | `/壓縮建議` | Smart guide for when to use `/compact` and when not to |
+| :--- | :- | :--- |
+| `/memory-search` | `/搜尋記憶` | Keyword search across all memory files |
+| `/recover` | `/想起來` | Restore memory from GitHub backup |
+| `/compact-guide` | `/壓縮建議` | Guide for when to compress and when not to |
 
-> In plain English: "I saved something about this before, where is it?" -> `/memory-search`. New computer or lost your memory files -> `/recover` (requires a GitHub backup repo set up beforehand). Conversation getting slow and long -> `/compact-guide`.
+</details>
+
+<details>
+<summary><strong>7 Hooks (all automatic)</strong></summary>
+
+| Hook | Trigger | What it does |
+| :--- | :------ | :----------- |
+| `session-start` | New conversation | Load last summary + project memory |
+| `session-end` | Conversation ends | Save summary + pitfall detection |
+| `memory-sync` | Every message sent | Detect cross-session memory changes |
+| `write-guard` | Before file writes | Sensitive file interception |
+| `pre-push-check` | Before git push | Safety check |
+| `mid-session-checkpoint` | Every 20 messages | Save checkpoint + mini analysis |
+
+</details>
 
 ---
 
 ## :package: Installation
 
-**Step 1** -- Create a private GitHub repo for memory backup:
+**Step 1** — Create a GitHub repo for memory backup:
 
-> This step matters. Without a backup repo, `/backup`, `/sync`, and `/recover` won't work -- your memory only lives locally, and if your machine dies, it's gone.
+> Without a backup repo, `/backup`, `/sync`, and `/recover` won't work. Memory only lives locally — if your machine dies, it's all gone.
 
 ```bash
-# Create a private repo (e.g., "claude-memory")
 gh repo create claude-memory --private
-
-# Clone it locally
 git clone https://github.com/YOUR_USERNAME/claude-memory.git ~/.claude/claude-memory
 ```
 
-**Step 2** -- Copy files to their locations:
+**Step 2** — Copy files:
 
 ```bash
-# Hook scripts
 cp hooks/*.js ~/.claude/scripts/hooks/
-
-# Commands
 cp commands/*.md ~/.claude/commands/
-
-# Skill definition (optional -- Claude will auto-recognize this Skill)
 cp -r skill/ ~/.claude/skills/learned/memory-engine/
 ```
 
-**Step 3** -- Create required directories:
+**Step 3** — Create directories:
 
 ```bash
 mkdir -p ~/.claude/sessions/diary
 mkdir -p ~/.claude/scripts/hooks
 ```
 
-**Step 4** -- Add hooks config to `~/.claude/settings.json`:
+**Step 4** — Add hooks config to `~/.claude/settings.json`:
 
 <details>
-<summary><strong>Click to expand full hooks config</strong></summary>
+<summary><strong>Click to expand full config</strong></summary>
 
 ```json
 {
@@ -237,12 +218,7 @@ mkdir -p ~/.claude/scripts/hooks
           {
             "type": "command",
             "command": "node ~/.claude/scripts/hooks/memory-sync.js"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "node ~/.claude/scripts/hooks/mid-session-checkpoint.js"
@@ -276,87 +252,15 @@ mkdir -p ~/.claude/scripts/hooks
 
 </details>
 
-**Step 5** -- Restart Claude Code. Done!
-
----
-
-## :brain: Smart Context
-
-> Whatever folder you're working in, it automatically loads that project's memory. No setup needed.
-
-`session-start.js` automatically scans all project directories under `~/.claude/projects/` and matches them against your current working directory.
-
-Memory files live in `~/.claude/projects/{project-id}/memory/`.
-
----
-
-## :detective: Auto Learn
-
-> When Claude hits a wall and figures it out, it remembers -- so it won't make the same mistake next time.
-
-`session-end.js` automatically scans each conversation for four "pitfall" patterns:
-
-| Signal | How It's Detected | Example |
-| :----- | :---------------- | :------ |
-| 5+ retries | Same tool called 5+ times on same file | Edit the same file 5 times |
-| Error then fix | Error appears, then same area succeeds | Build fails -> fix code -> build passes |
-| User correction | User says "wrong", "revert" (EN) or "不對", "錯了", "改回來" (ZH) | "That's not the right file" |
-| Back-and-forth | Same file edited repeatedly in quick succession | Changed CSS then changed it back |
-
-Detected pitfalls are saved to `~/.claude/skills/learned/auto-pitfall-{date}.md` and reviewed at the start of the next session.
-
-In v1.1, pitfall records also include the **solution** -- the successful fix extracted from the same conversation, so you get both the problem and the answer.
-
-> v1.3 excludes normal-repeat tools (TodoWrite, Agent, Read, Grep, Glob) from retry detection to reduce false positives.
-
----
-
-## :open_file_folder: File Structure
-
-```
-claude-memory-engine/
-  hooks/
-    session-start.js        # New session -> load recall + smart-context
-    session-end.js          # Session end -> save summary + detect pitfalls
-    memory-sync.js          # Every message -> cross-session memory sync
-    write-guard.js          # Before file write -> sensitive file warning
-    mid-session-checkpoint.js # Every 20 messages -> mid-conversation checkpoint
-    pre-push-check.js       # Before git push -> safety check
-  commands/
-    # Daily Operations
-    save.md / 存記憶.md      # Save memory across sessions
-    reload.md / 讀取.md      # Load memory into context
-    todo.md / 待辦.md        # Cross-project task tracker
-    backup.md / 備份.md      # Push memory to GitHub
-    sync.md / 同步.md        # Bidirectional sync
-    # Reflection & Learning
-    diary.md / 回顧.md       # Reflection diary
-    reflect.md / 反思.md     # Pattern analysis
-    learn.md / 學習.md       # Auto-learn from mistakes
-    # Health Checks
-    check.md / 健檢.md       # Quick health check
-    full-check.md / 大健檢.md # Comprehensive audit
-    memory-health.md / 記憶健檢.md  # Memory capacity check
-    # Search & Recovery
-    memory-search.md / 搜尋記憶.md  # Keyword search
-    recover.md / 想起來.md    # Disaster recovery
-    compact-guide.md / 壓縮建議.md  # Context compression guide
-  skill/
-    SKILL.md                # Skill definition
-    references/
-      smart-context.md      # CWD to memory file mapping
-      auto-learn.md         # Pitfall detection rules
-```
+**Step 5** — Restart Claude Code. Done!
 
 ---
 
 ## :wrench: Customization
 
-This Skill is designed to be modified. Common adjustments:
-
 | What | Where |
 | :--- | :---- |
-| Context map | Auto-detected in v1.1 (no config needed). Override in `session-start.js` |
+| Context map | Smart Context v1.1 auto-detects (usually no config needed). Override in `session-start.js` |
 | Keywords | `correctionKeywords` in `session-end.js` |
 | Sensitive files | `PROTECTED_PATTERNS` in `write-guard.js` |
 | Retention | `MAX_SESSIONS` in `session-end.js` (default: 30) |
@@ -366,28 +270,81 @@ This Skill is designed to be modified. Common adjustments:
 ## :bulb: Design Philosophy
 
 **Why not a database?**
-Markdown files are human-readable, editable, and git-committable. No extra packages, no server, no query language. Claude Code already reads `.md` natively -- why add complexity?
+Markdown files are human-readable, editable, and git-committable. Claude Code already reads `.md` natively — why add complexity?
 
 **Why not a Plugin?**
-Plugins are black boxes -- you can't see what they changed, stored, or read. Hooks + Commands are transparent -- every `.js` file is right there to inspect, modify, or delete. Tools should be something you control, not something that controls you.
+Plugins are black boxes. Hooks + Commands are transparent — every `.js` file is right there to inspect, modify, or delete. Tools should be something you control, not something that controls you.
 
 ---
 
-## :pray: Inspiration & Credits
+## :pray: Credits
 
-This Skill's concepts were inspired by three open-source projects. To be clear:
+> **All code was written from scratch. No code was copied, forked, or adapted from any source project.**
 
-> **All code was written from scratch. No code was copied, forked, or adapted from any of the projects below.**
->
-> I studied what each tool does best, then fused those *concepts* into a new implementation. Like reading menus from three restaurants, then going home and cooking something new with my own ingredients and my own recipe.
+| Project | What it inspired |
+| :--- | :--- |
+| [contextstream/claude-code](https://github.com/contextstream/claude-code) | Smart Context, auto-learning from mistakes |
+| [memvid/claude-brain](https://github.com/memvid/claude-brain) | Memory statistics, lightweight design |
+| [rlancemartin/claude-diary](https://github.com/rlancemartin/claude-diary) | Reflection diary, pattern analysis |
 
-| Project | Concept Inspired | Link |
-| :------ | :--------------- | :--- |
-| contextstream/claude-code | Smart Context: auto-injecting relevant memory via hooks, auto-learning from mistakes | [GitHub](https://github.com/contextstream/claude-code) |
-| memvid/claude-brain | Memory statistics, lightweight portable design | [GitHub](https://github.com/memvid/claude-brain) |
-| rlancemartin/claude-diary | /diary reflection entries, /reflect pattern analysis | [GitHub](https://github.com/rlancemartin/claude-diary) |
+---
 
-Thank you to these developers for sharing their work and making the Claude Code community better.
+<details>
+<summary><strong>Changelog</strong></summary>
+
+**v1.3 — The Student Loop**
+- 8-step learning cycle (first 3 automatic, last 5 via `/reflect`)
+- Mid-session checkpoints (every 20 messages)
+- `/reflect` 4-question decision tree
+- SessionEnd fixes (transcript parsing, IDE noise filtering, pitfall threshold raised to 5)
+
+**v1.2 — Full Command Suite**
+- 14 bilingual commands (daily ops / reflection / health checks / search & recovery)
+- Two-tier health checks (`/check` + `/full-check`)
+- Cross-project tasks, backup sync, disaster recovery, compression guide
+
+**v1.1 — Smart Context Auto-detect**
+- No manual config needed — auto-scans project memory directories
+- Chinese correction detection (13 Chinese keywords)
+- Pitfall records include solutions, session summaries revamped, weekly auto-digest
+
+</details>
+
+<details>
+<summary><strong>File structure</strong></summary>
+
+```
+claude-memory-engine/
+  hooks/
+    session-start.js          # New session -> load recall + smart-context
+    session-end.js            # Session end -> save summary + pitfall detection
+    memory-sync.js            # Every message -> cross-session memory sync
+    write-guard.js            # Before file write -> sensitive file warning
+    pre-push-check.js         # Before git push -> safety check
+    mid-session-checkpoint.js # Every 20 messages -> checkpoint
+  commands/
+    save.md / 存記憶.md        # Save memory across sessions
+    reload.md / 讀取.md        # Load memory
+    todo.md / 待辦.md          # Cross-project tasks
+    backup.md / 備份.md        # Push to GitHub
+    sync.md / 同步.md          # Bidirectional sync
+    diary.md / 回顧.md         # Reflection diary
+    reflect.md / 反思.md       # Pattern analysis
+    learn.md / 學習.md         # Pitfall learning
+    check.md / 健檢.md         # Quick health check
+    full-check.md / 大健檢.md   # Full audit
+    memory-health.md / 記憶健檢.md
+    memory-search.md / 搜尋記憶.md
+    recover.md / 想起來.md
+    compact-guide.md / 壓縮建議.md
+  skill/
+    SKILL.md
+    references/
+      smart-context.md
+      auto-learn.md
+```
+
+</details>
 
 ---
 
@@ -399,10 +356,10 @@ Thank you to these developers for sharing their work and making the Claude Code 
 
 ## License
 
-MIT -- see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  Made by <a href="https://ohruru.com">HelloRuru</a> -- someone who believes tools should be transparent, simple, and something you can actually understand.
+  Made by <a href="https://ohruru.com">HelloRuru</a>
 </p>
