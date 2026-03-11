@@ -51,7 +51,7 @@ function saveState(state) {
   } catch (e) {}
 }
 
-// 簡單的 diff：找出新增的
+// 簡單的 diff：找出新增的行
 function getChangedLines(oldContent, newContent) {
   const oldLines = new Set(oldContent.split('\n').map(l => l.trim()).filter(Boolean));
   const newLines = newContent.split('\n').map(l => l.trim()).filter(Boolean);
@@ -78,7 +78,7 @@ function main() {
     const currentHash = Buffer.from(currentContent).toString('base64').substring(0, 32);
 
     if (lastMtime === 0 || lastHash === '') {
-      // 第一次執，記錄狀態
+      // 第一次執行，記錄狀態
       state[memoryFile + ':mtime'] = currentMtime;
       state[memoryFile + ':hash'] = currentHash;
       state[memoryFile + ':content'] = currentContent;
@@ -113,13 +113,13 @@ function main() {
       // 注入變更摘要
       const output = [];
       if (changedFiles.length > 0) {
-        output.push(`[Memory Sync] Memory files were updated：${changedFiles.join(', ')}`);
+        output.push(`[Memory Sync] 記憶檔案被更新了：${changedFiles.join(', ')}`);
       }
       if (changedLines.length > 0) {
         const preview = changedLines.slice(0, 5).join('\n  ');
-        output.push(`[Memory Sync] New or modified content：\n  ${preview}`);
+        output.push(`[Memory Sync] 新增/修改的內容：\n  ${preview}`);
         if (changedLines.length > 5) {
-          output.push(`  ...and ${changedLines.length - 5} `);
+          output.push(`  ...還有 ${changedLines.length - 5} 行`);
         }
       }
 

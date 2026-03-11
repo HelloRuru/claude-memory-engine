@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * SessionEnd Hook — Memory Engine (Auto Save + Auto Learn)
+ * SessionEnd Hook — 小八自動存檔 + 踩坑學習系統
  * 1. 每次 session 結束自動儲存工作摘要
  * 2. 偵測踩坑模式，自動存到 learned/
  * 從 stdin 讀取 JSON（含 transcript_path）
@@ -24,18 +24,126 @@ function debugLog(msg) {
   fs.appendFileSync(DEBUG_LOG, `[${ts}] ${msg}\n`, 'utf-8');
 }
 
+// === 尋找 fallback transcript ===
+function findFallbackTranscript(originalPath) {
+  // 從原始路徑推斷專案目錄
+  const projectsDir = path.join(process.env.HOME || process.env.USERPROFILE, '.claude', 'projects');
+  const searchDirs = [];
+
+  // 1. 嘗試從原始路徑取出專案目錄
+  if (originalPath) {
+    const dir = path.dirname(originalPath);
+    if (fs.existsSync(dir)) searchDirs.push(dir);
+  }
+
+  // 2. 掃描所有專案目錄
+  if (fs.existsSync(projectsDir)) {
+    try {
+      const entries = fs.readdirSync(projectsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          searchDirs.push(path.join(projectsDir, entry.name));
+        }
+      }
+    } catch (e) {}
+  }
+
+  let bestFile = null;
+  let bestMtime = 0;
+
+  for (const dir of searchDirs) {
+    try {
+      const files = fs.readdirSync(dir).filter(f => f.endsWith('.jsonl'));
+      for (const f of files) {
+        const fp = path.join(dir, f);
+        const stat = fs.statSync(fp);
+        if (stat.mtimeMs > bestMtime) {
+          bestMtime = stat.mtimeMs;
+          bestFile = fp;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 只接受 10 分鐘內修改過的檔案（避免抓到舊 session）
+  if (bestFile && (Date.now() - bestMtime) < 10 * 60 * 1000) {
+    return bestFile;
+  }
+  return null;
+}
+
+// === 從 CWD / transcript CWD / 修改檔案 / 訊息推斷專案歸屬 ===
+function detectProjectTag(userMessages, inputCwd, filesModified) {
+  const projectPatterns = [
+    { pattern: /ohruru/i, tag: 'ohruru' },
+    { pattern: /tools[\/\\]|tools$/i, tag: 'tools' },
+    { pattern: /helloruru\.github\.io|[\/\\]lab[\/\\]?$/i, tag: 'lab' },
+    { pattern: /helloruru-blog|blog/i, tag: 'blog' },
+    { pattern: /ebook-deals/i, tag: 'ebook-deals' },
+    { pattern: /claude-memory-engine/i, tag: 'claude-memory-engine' },
+    { pattern: /claude-teams-go/i, tag: 'claude-teams-go' },
+    { pattern: /claude-zhenhuan/i, tag: 'claude-zhenhuan' },
+    { pattern: /happy-exit/i, tag: 'happy-exit' },
+    { pattern: /美龍|meilong/i, tag: 'client-meilong' },
+  ];
+
+  // 1. 從 SessionEnd 傳入的 CWD 推斷（最可靠）
+  const cwd = (inputCwd || process.cwd()).replace(/\\/g, '/');
+  for (const { pattern, tag } of projectPatterns) {
+    if (pattern.test(cwd)) return tag;
+  }
+
+  // 2. 從修改的檔案路徑推斷
+  if (filesModified && filesModified.length > 0) {
+    const allPaths = filesModified.join(' ');
+    for (const { pattern, tag } of projectPatterns) {
+      if (pattern.test(allPaths)) return tag;
+    }
+  }
+
+  // 3. 從嚕寶訊息內容推斷
+  const allText = userMessages.slice(0, 10).join(' ');
+  for (const { pattern, tag } of projectPatterns) {
+    if (pattern.test(allText)) return tag;
+  }
+
+  // 4. 從修改的記憶引擎相關檔案推斷
+  if (filesModified && filesModified.some(f =>
+    /session-end|session-start|checkpoint|memory-sync|MEMORY\.md|todo-status/i.test(f)
+  )) {
+    return 'claude-memory-engine';
+  }
+
+  // 5. 從 CWD 取最後一層目錄名
+  const parts = cwd.split('/').filter(Boolean);
+  const lastDir = parts[parts.length - 1] || '';
+  if (lastDir && lastDir !== 'kaoru' && lastDir !== 'Users') {
+    return lastDir.toLowerCase();
+  }
+
+  return 'general';
+}
+
 // === 解析 transcript ===
 function parseTranscript(transcriptPath) {
   if (!transcriptPath) {
     debugLog('transcript_path 是空的');
     return null;
   }
+
+  // Fallback：如果指定路徑不存在，找最近修改的 .jsonl
+  let actualPath = transcriptPath;
   if (!fs.existsSync(transcriptPath)) {
-    debugLog(`transcript 檔案不存在: ${transcriptPath}`);
-    return null;
+    debugLog(`transcript 檔案不存在: ${transcriptPath}，嘗試 fallback...`);
+    actualPath = findFallbackTranscript(transcriptPath);
+    if (!actualPath) {
+      debugLog('fallback 也找不到合適的 transcript');
+      return null;
+    }
+    debugLog(`fallback 找到: ${actualPath}`);
   }
 
-  const lines = fs.readFileSync(transcriptPath, 'utf-8').trim().split('\n');
+  const lines = fs.readFileSync(actualPath, 'utf-8').trim().split('\n');
   debugLog(`transcript 共 ${lines.length} 行`);
 
   const userMessages = [];
@@ -47,21 +155,33 @@ function parseTranscript(transcriptPath) {
     try {
       const entry = JSON.parse(line);
 
+      // transcript 格式：{ type: "user"|"assistant", message: { role, content } }
+      const entryType = entry.type;
+      const msg = entry.message;
+      if (!msg) continue; // 跳過 progress/queue-operation 等非訊息行
+
       // 擷取使用者訊息
-      if (entry.role === 'user' && entry.content) {
-        const text = typeof entry.content === 'string'
-          ? entry.content
-          : Array.isArray(entry.content)
-            ? entry.content.filter(c => c.type === 'text').map(c => c.text).join(' ')
+      if (entryType === 'user' && msg.content) {
+        const content = msg.content;
+        const text = typeof content === 'string'
+          ? content
+          : Array.isArray(content)
+            ? content.filter(c => c.type === 'text').map(c => c.text).join(' ')
             : '';
-        if (text.trim()) {
-          userMessages.push(text.trim().substring(0, 200));
+        // 過濾掉系統注入的 IDE 訊息和 system-reminder
+        const cleaned = text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, '')
+                           .replace(/<ide_[\s\S]*?>/g, '')
+                           .replace(/^The user opened the file[\s\S]*?$/gm, '')
+                           .replace(/<available-deferred-tools>[\s\S]*?<\/available-deferred-tools>/g, '')
+                           .trim();
+        if (cleaned && cleaned.length > 0 && !cleaned.startsWith('<') && !cleaned.startsWith('The user') && !cleaned.startsWith('This session is being continued')) {
+          userMessages.push(cleaned.substring(0, 200));
         }
       }
 
       // 擷取工具呼叫和結果
-      if (entry.role === 'assistant' && Array.isArray(entry.content)) {
-        for (const block of entry.content) {
+      if (entryType === 'assistant' && Array.isArray(msg.content)) {
+        for (const block of msg.content) {
           if (block.type === 'tool_use') {
             toolsUsed.add(block.name);
             const fp = block.input?.file_path || block.input?.path || block.input?.command || '';
@@ -91,7 +211,7 @@ function parseTranscript(transcriptPath) {
         }
       }
     } catch (e) {
-      // 跳過None法解析的行
+      // 跳過無法解析的行
     }
   }
 
@@ -103,14 +223,18 @@ function detectPitfalls(parsed) {
   if (!parsed || !parsed.toolCalls) return [];
   const pitfalls = [];
 
-  // 訊號 1：重試 3+ 次
+  // 正常重複使用的工具不算踩坑（這些本來就會對同目標呼叫多次）
+  const normalRepeatTools = new Set(['TodoWrite', 'Agent', 'Read', 'Grep', 'Glob', 'WebSearch', 'WebFetch']);
+
+  // 訊號 1：重試 5+ 次（只看寫入類工具）
   const retryMap = new Map();
   for (const call of parsed.toolCalls) {
+    if (normalRepeatTools.has(call.name)) continue;
     const key = `${call.name}:${call.target}`;
     retryMap.set(key, (retryMap.get(key) || 0) + 1);
   }
   for (const [key, count] of retryMap) {
-    if (count >= 3) {
+    if (count >= 5) {
       const [tool, target] = key.split(':');
       pitfalls.push({
         type: 'retry',
@@ -139,20 +263,13 @@ function detectPitfalls(parsed) {
     }
   }
 
-  // 訊號 3：使用者糾正
-  const correctionKeywords = [
-    // English
-    'wrong', 'not this', 'revert', 'undo', 'that\'s not', 'go back', 'not what I',
-    // Chinese
-    '\u4e0d\u5c0d', '\u932f\u4e86', '\u6539\u56de\u4f86', '\u4e0d\u662f\u9019\u500b', '\u56de\u5fa9', '\u6492\u92b7',
-    '\u91cd\u4f86', '\u91cd\u505a', '\u4e0d\u8981\u9019\u6a23', '\u53d6\u6d88', '\u4e0d\u662f\u6211\u8981\u7684',
-    '\u6211\u8aaa\u7684\u4e0d\u662f', '\u4f60\u8aa4\u6703\u4e86', '\u8acb\u505c\u4e0b',
-  ];
+  // 訊號 3：使用者糾正（只抓明確的糾正語氣，「應該是」太寬容易誤判）
+  const correctionKeywords = ['不對', '錯了', '不是這個', '改回來', '搞錯', '弄錯', '我說的是'];
   for (const msg of parsed.userMessages) {
     if (correctionKeywords.some(kw => msg.includes(kw))) {
       pitfalls.push({
         type: 'user-correction',
-        description: `User correction：${msg.substring(0, 80)}`,
+        description: `嚕寶糾正：${msg.substring(0, 80)}`,
         target: '',
       });
     }
@@ -161,73 +278,38 @@ function detectPitfalls(parsed) {
   return pitfalls;
 }
 
-// === 從對話中抓出解法 ===
-function extractSolution(parsed, pitfall) {
-  if (!parsed || !parsed.toolCalls) return null;
-
-  // 找踩坑後成功的那次呼叫，取出結果作為解法線索
-  if (pitfall.type === 'error-then-fix' && pitfall.target) {
-    for (let i = parsed.toolCalls.length - 1; i >= 0; i--) {
-      const call = parsed.toolCalls[i];
-      if (call.target === pitfall.target && !call.hasError && call.resultSnippet) {
-        return call.resultSnippet;
-      }
-    }
-  }
-
-  // 重試型：取最後一次成功的結果
-  if (pitfall.type === 'retry' && pitfall.target) {
-    for (let i = parsed.toolCalls.length - 1; i >= 0; i--) {
-      const call = parsed.toolCalls[i];
-      if (call.target === pitfall.target && !call.hasError && call.resultSnippet) {
-        return call.resultSnippet;
-      }
-    }
-  }
-
-  return null;
-}
-
-// === 存 Pitfall Record ===
-function savePitfalls(pitfalls, parsed) {
+// === 存踩坑紀錄 ===
+function savePitfalls(pitfalls) {
   if (pitfalls.length === 0) return;
   ensureDir(LEARNED_DIR);
 
   const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  // 合併所有踩坑成一份紀錄
   const slug = `auto-pitfall-${dateStr}`;
   let filename = `${slug}.md`;
   const filepath = path.join(LEARNED_DIR, filename);
 
+  // 如果同名已存在就加序號
   if (fs.existsSync(filepath)) {
     const seq = Math.random().toString(36).substring(2, 5);
     filename = `${slug}-${seq}.md`;
   }
 
-  const content = `# Pitfall Record ${new Date().toISOString().split('T')[0]}
+  const content = `# 踩坑紀錄 ${new Date().toISOString().split('T')[0]}
 
-## Issues Detected
+## 偵測到的問題
 
-${pitfalls.map(p => {
-  const solution = extractSolution(parsed, p);
-  return `### ${p.type}
+${pitfalls.map(p => `### ${p.type}
 - ${p.description}
-${p.errorSnippet ? `- Error：\`${p.errorSnippet}\`` : ''}
-${solution ? `- Solution：\`${solution}\`` : ''}`;
-}).join('\n\n')}
+${p.errorSnippet ? `- 錯誤片段：\`${p.errorSnippet}\`` : ''}`).join('\n\n')}
 
-## Lessons
+## 教訓
 
-${pitfalls.map(p => {
-  const solution = extractSolution(parsed, p);
-  if (solution) {
-    return `- ${p.target || 'unknown'}：failed -> fixed with \`${solution.substring(0, 80)}\``;
-  }
-  return `- ${p.target || 'unknown'}：${p.description}`;
-}).join('\n')}
+（下次 session 開始時，小八會讀取這份紀錄並提醒自己）
 `;
 
   fs.writeFileSync(path.join(LEARNED_DIR, filename), content, 'utf-8');
-  debugLog(`Pitfall saved：${filename}（${pitfalls.length} items, with solutions）`);
+  debugLog(`踩坑紀錄已存：${filename}（${pitfalls.length} 項）`);
 }
 
 // === 清理舊 session ===
@@ -247,86 +329,6 @@ function cleanOldSessions() {
       try { fs.unlinkSync(old.path); } catch (e) {}
     }
   }
-}
-
-// === 每週自動合併 session 為週報 ===
-function generateWeeklyDigest() {
-  if (!fs.existsSync(SESSIONS_DIR)) return;
-
-  const now = Date.now();
-  const oneWeek = 7 * 24 * 60 * 60 * 1000;
-  const digestDir = path.join(SESSIONS_DIR, 'digest');
-  ensureDir(digestDir);
-
-  // 檢查這週有沒有已經產生過週報
-  const today = new Date();
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - today.getDay()); // 本週日
-  const weekId = weekStart.toISOString().split('T')[0];
-  const digestFile = path.join(digestDir, `week-${weekId}.md`);
-
-  if (fs.existsSync(digestFile)) return; // 這週已經有了
-
-  // 找出超過 7 天的 session 檔案
-  const oldSessions = fs.readdirSync(SESSIONS_DIR)
-    .filter(f => f.endsWith('-session.md'))
-    .map(f => ({
-      name: f,
-      path: path.join(SESSIONS_DIR, f),
-      mtime: fs.statSync(path.join(SESSIONS_DIR, f)).mtimeMs
-    }))
-    .filter(f => (now - f.mtime) > oneWeek && (now - f.mtime) < oneWeek * 2)
-    .sort((a, b) => a.mtime - b.mtime);
-
-  if (oldSessions.length < 3) return; // 太少不值得合併
-
-  // 合併成週報
-  const allFiles = new Set();
-  const allTools = new Set();
-  const allTopics = [];
-  let totalMessages = 0;
-
-  for (const session of oldSessions) {
-    const content = fs.readFileSync(session.path, 'utf-8');
-
-    // 抓 Files touched
-    const filesMatch = content.match(/## Files touched\n([\s\S]*?)(?=\n##|$)/);
-    if (filesMatch) {
-      filesMatch[1].split('\n').filter(l => l.startsWith('- ')).forEach(l => allFiles.add(l.slice(2).trim()));
-    }
-
-    // 抓 Tools used
-    const toolsMatch = content.match(/## Tools used\n(.+)/);
-    if (toolsMatch) {
-      toolsMatch[1].split(', ').forEach(t => allTools.add(t.trim()));
-    }
-
-    // 抓 What was done
-    const topicMatch = content.match(/## What was done\n(.+)/);
-    if (topicMatch && topicMatch[1] !== 'No clear topic detected') {
-      allTopics.push(topicMatch[1].trim());
-    }
-
-    // 抓 Messages 數
-    const msgMatch = content.match(/Messages:\*\* (\d+)/);
-    if (msgMatch) totalMessages += parseInt(msgMatch[1]);
-  }
-
-  const digest = `# Weekly Digest: ${weekId}
-**Sessions:** ${oldSessions.length} | **Total messages:** ${totalMessages}
-
-## Topics covered
-${allTopics.length > 0 ? allTopics.map(t => `- ${t}`).join('\n') : 'None recorded'}
-
-## Files touched
-${allFiles.size > 0 ? [...allFiles].map(f => `- ${f}`).join('\n') : 'None'}
-
-## Tools used
-${[...allTools].join(', ') || 'None'}
-`;
-
-  fs.writeFileSync(digestFile, digest, 'utf-8');
-  debugLog(`Weekly digest saved: week-${weekId}.md (${oldSessions.length} sessions merged)`);
 }
 
 // === 主程式 ===
@@ -373,38 +375,97 @@ function main(inputData) {
 
     const recentMessages = parsed.userMessages.slice(-8);
 
-    // 從訊息中提取主要工作主題（取前 3 則訊息的關鍵內容）
-    const topicMessages = parsed.userMessages.slice(0, 3);
-    const mainTopic = topicMessages.map(m => m.substring(0, 60)).join(' | ');
+    // 推斷專案歸屬（傳入 CWD + 修改檔案，提高準確度）
+    const projectTag = detectProjectTag(parsed.userMessages, data.cwd, parsed.filesModified);
+    debugLog(`專案歸屬: ${projectTag}`);
+
+    // 產生標題級摘要（取最有意義的訊息，過濾掉太短的回應）
+    const meaningfulMessages = parsed.userMessages.filter(m => m.length > 3 && !/^(可以|好|ok|是|對|要|嗯)$/i.test(m.trim()));
+    const allTopics = meaningfulMessages.slice(0, 5).join(' ').substring(0, 100);
+    const titleHint = allTopics.replace(/\n/g, ' ').substring(0, 60);
 
     const summary = `# Session: ${dateStr}
-**Time:** ${timeStr} | **Messages:** ${parsed.userMessages.length} | **Tools:** ${parsed.toolsUsed.length}
+**專案：** ${projectTag}
+**標題：** ${titleHint}
+**時間：** ${timeStr}
+**訊息數：** ${parsed.userMessages.length}
 
-## What was done
-${mainTopic || 'No clear topic detected'}
+## 嚕寶的要求
+${recentMessages.map(m => `- ${m}`).join('\n')}
 
-## Key requests
-${recentMessages.slice(-5).map(m => `- ${m}`).join('\n')}
+## 使用的工具
+${parsed.toolsUsed.join(', ') || '無'}
 
-## Files touched
-${parsed.filesModified.length > 0 ? parsed.filesModified.map(f => `- ${f}`).join('\n') : 'None'}
-
-## Tools used
-${parsed.toolsUsed.join(', ') || 'None'}
+## 修改的檔案
+${parsed.filesModified.length > 0 ? parsed.filesModified.map(f => `- ${f}`).join('\n') : '無'}
 `;
 
     fs.writeFileSync(path.join(SESSIONS_DIR, filename), summary, 'utf-8');
     debugLog(`session 摘要已存: ${filename}`);
 
+    // 更新專案索引（串連用）
+    try {
+      const indexFile = path.join(SESSIONS_DIR, 'project-index.md');
+      let indexContent = '';
+      const indexMap = new Map(); // projectTag -> [sessions]
+
+      // 讀取既有索引
+      if (fs.existsSync(indexFile)) {
+        const existing = fs.readFileSync(indexFile, 'utf-8');
+        const lines = existing.split('\n');
+        let currentProject = '';
+        for (const line of lines) {
+          const projMatch = line.match(/^## (.+)/);
+          if (projMatch) {
+            currentProject = projMatch[1];
+            if (!indexMap.has(currentProject)) indexMap.set(currentProject, []);
+          } else if (line.startsWith('- ') && currentProject) {
+            indexMap.get(currentProject).push(line);
+          }
+        }
+      }
+
+      // 加入這次 session
+      if (!indexMap.has(projectTag)) indexMap.set(projectTag, []);
+      const entries = indexMap.get(projectTag);
+      const newEntry = `- ${dateStr} ${timeStr} | ${titleHint} | ${filename}`;
+      entries.push(newEntry);
+
+      // 每個專案最多保留 20 筆
+      if (entries.length > 20) {
+        indexMap.set(projectTag, entries.slice(-20));
+      }
+
+      // 寫回索引
+      const sortedProjects = [...indexMap.keys()].sort();
+      indexContent = `# 專案 Session 索引\n\n> 自動維護，/reflect 讀這個檔案就好\n\n`;
+      for (const proj of sortedProjects) {
+        indexContent += `## ${proj}\n${indexMap.get(proj).join('\n')}\n\n`;
+      }
+      fs.writeFileSync(indexFile, indexContent, 'utf-8');
+      debugLog(`專案索引已更新: ${projectTag}`);
+    } catch (indexErr) {
+      debugLog(`專案索引更新失敗（不影響主流程）: ${indexErr.message}`);
+    }
+
     // 踩坑偵測
     const pitfalls = detectPitfalls(parsed);
     debugLog(`踩坑偵測結果: ${pitfalls.length} 項`);
     if (pitfalls.length > 0) {
-      savePitfalls(pitfalls, parsed);
+      savePitfalls(pitfalls);
     }
 
-    // 週報合併（靜默執行，失敗不影響主流程）
-    try { generateWeeklyDigest(); } catch (e) { debugLog(`Weekly digest error: ${e.message}`); }
+    // 自動備份記憶到 claude-memory repo（只 commit，不 push）
+    try {
+      const { execSync } = require('child_process');
+      const backupScript = path.join(process.env.HOME || process.env.USERPROFILE, '.claude', 'scripts', 'hooks', 'memory-backup.sh');
+      if (fs.existsSync(backupScript)) {
+        execSync(`bash "${backupScript}"`, { timeout: 10000, stdio: 'ignore' });
+        debugLog('自動備份 commit 完成');
+      }
+    } catch (backupErr) {
+      debugLog(`自動備份失敗（不影響正常結束）: ${backupErr.message}`);
+    }
 
     debugLog('=== session-end 完成 ===');
   } catch (err) {

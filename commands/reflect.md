@@ -1,42 +1,106 @@
-# /reflect -- Reflection Analysis
+# /reflect — Learning Loop 後五步（回顧 -> 整理 -> 精煉 -> 再學 -> 瘦身 -> 收尾）
 
-Analyze recent diary entries and session records to find patterns and suggest improvements.
+嚕寶觸發後，小八跑完 Learning Loop 的步驟 4-8。
+分兩段：前半（回顧+整理+歸整）完成後自動接後半（再分析+學習+清除+結論）。
 
-## Steps
+## 前半：回顧 + 整理 + 歸整（步驟 4-5）
 
-1. **Read recent diaries**: Scan `~/.claude/sessions/diary/` (last 7 days)
-2. **Read session summaries**: Scan `~/.claude/sessions/` for recent records
-3. **Read pitfall records**: Scan `~/.claude/skills/learned/auto-pitfall-*.md`
-4. **Analyze patterns**:
-   - What type of work does the user do most?
-   - Which pitfalls keep recurring? Should they be added to CLAUDE.md?
-   - Any new preferences or rules to record?
-   - Any outdated MEMORY.md entries to clean up?
-5. **Suggest changes**: List specific update suggestions for user confirmation
+### 步驟 4：歸位清理（只看不動手）
 
-## Output Format
+1. **讀專案索引**：讀 `~/.claude/sessions/project-index.md`
+   - 如果嚕寶指定專案（如 `/reflect blog`）→ 只看該專案的 session
+   - 沒指定 → 看所有專案
+2. **讀 session 摘要**：根據索引讀最近 7 天的 session 紀錄（最多 10 份）
+3. **讀踩坑紀錄**：掃描 `~/.claude/skills/learned/auto-pitfall-*.md`
+4. **讀記憶檔案**：掃描 `memory/*.md` 所有記憶檔案
+5. **標記判斷**（只看不改）：
+   - 每個記憶段落標記為：`有效` / `過時` / `重複` / `待更新`
+   - 每個踩坑紀錄標記為：`已內化`（寫進 CLAUDE.md 了）/ `仍需注意` / `可清除`
+
+### 步驟 5：精煉資料（根據標記動手，用樹狀四問決策）
+
+每段資料過四問再動手，不要機械式合併：
+- **Q1 是否要長？** 這段資料服務主幹嗎？→ 不服務就剪（標記待清除）
+- **Q2 成長（濃縮取代）？** 能跟其他段落合併成更精煉的版本嗎？→ 精煉版寫好，原始版自然被取代
+- **Q3 融會貫通？** 能套用已有的 CLAUDE.md 原則嗎？→ 已有原則涵蓋的就不重複記
+- **Q4 清是最後防線** → 只有 Q1-Q3 都不適用時才標記清除，幾乎不該用到
+
+6. **合併重複**：找出 memory/*.md 中重複的段落，用 Q2 濃縮取代（精煉版取代原始版）
+7. **更新過時**：標記「過時」的段落，用 Q1 判斷是否還服務主幹
+8. **歸位**：放錯地方的內容搬到正確的 HOOK 檔案
+
+## 後半：再分析 + 學習 + 清除 + 結論（步驟 6-8）
+
+前半完成後自動接著跑，不用嚕寶再觸發。
+
+### 步驟 6：用精煉版再學
+
+9. **分析規律**（用整理過的乾淨資料）：
+   - 嚕寶最常做的工作類型？
+   - 哪些踩坑重複出現？應該寫進 CLAUDE.md？
+   - 有沒有新的偏好或工作習慣？
+   - 哪些 HOOK 觸發詞要補？
+10. **比較差異**：這次分析結果 vs 上次 /reflect 的結論（如果有的話）
+
+### 步驟 7：瘦身（標記待清除，不直接刪）
+
+11. **列出清除清單**：
+    - 已內化的踩坑紀錄
+    - 合併後多餘的重複段落
+    - 超過 30 天沒更新且標記「過時」的記憶
+12. **顯示清單讓嚕寶掃一眼**
+13. **嚕寶確認後標記「待清除」**，下次 /reflect 才真刪
+
+### 步驟 8：收尾（結論）
+
+14. **成果報告**：
+    - 這一圈學到什麼
+    - 改了什麼（合併/更新/歸位）
+    - 下一圈要注意什麼
+    - 建議的 CLAUDE.md / MEMORY.md 更新（列出但不自動改）
+15. **存結論**：存到 `~/.claude/sessions/reflect-{日期}.md`
+
+## 輸出格式
 
 ```
-Reflection Report ({date range})
+=== Learning Loop 反思報告（{日期}）===
 
-Work stats:
-- X sessions total, most active project: {name}
-- Most used tools: {list}
+--- 前半：回顧 + 整理 ---
 
-Patterns found:
-1. {pattern} -> Suggestion: {action}
-2. ...
+專案統計：
+- 近 7 天共 X 次 session，最常碰：{專案名}
+- 最常用的工具：{列表}
 
-Pitfall stats:
-- Recurring: {description} -> Suggest adding to CLAUDE.md
-- Resolved: {description} -> Can be archived from learned/
+記憶健檢：
+- 有效：X 段 / 過時：X 段 / 重複：X 段
+- 精煉動作：合併 X 段、更新 X 段、歸位 X 段
 
-Suggested updates:
-- [ ] Add to CLAUDE.md: {new rule}
-- [ ] Update MEMORY.md: {which HOOK}
-- [ ] Remove outdated: {which files}
+踩坑統計：
+- 已內化：X 項 / 仍需注意：X 項 / 可清除：X 項
+
+--- 後半：再學 + 瘦身 + 收尾 ---
+
+發現的規律：
+1. {規律} -> 建議：{動作}
+
+清除清單（待嚕寶確認）：
+- [ ] {項目 1}
+- [ ] {項目 2}
+
+結論：
+- 學到：{摘要}
+- 改了：{摘要}
+- 下一圈注意：{摘要}
+
+建議更新：
+- [ ] CLAUDE.md 加入：{新規則}
+- [ ] MEMORY.md 更新：{哪個 HOOK}
 ```
 
-## Notes
-- Only suggest changes, never auto-modify CLAUDE.md (user must confirm)
-- Keep the report clear and actionable
+## 注意事項
+
+- 前半的「步驟 5 精煉」只動 memory/*.md，不動 CLAUDE.md
+- CLAUDE.md 修改一律提建議，嚕寶確認才改
+- 清除是延遲一圈的：這次標記，下次才真刪
+- 上次 /reflect 標記「待清除」的 → 這次確認後真刪
+- 白話文報告，嚕寶一眼看懂

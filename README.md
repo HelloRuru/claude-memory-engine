@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.2-C4B7D7?style=flat-square" alt="v1.2">
+  <img src="https://img.shields.io/badge/version-1.3-C4B7D7?style=flat-square" alt="v1.3">
 </p>
 
 <p align="center">
@@ -31,7 +31,21 @@ Every new conversation, Claude forgets everything.
 
 ---
 
-## :sparkles: What's New in v1.2
+## :sparkles: What's New in v1.3: The Student Loop
+
+> Think of it like exam prep. I'm trying to make Claude Code act like a student cramming for finals -- take notes after every class, organize them, review for patterns, build an error notebook, and do a big end-of-term review. Each cycle, it gets a little better.
+
+| Feature | Description |
+| :------ | :---------- |
+| Learning Loop (8 steps) | Automatic note-taking (SessionEnd) -> link notes by project -> find patterns -> review + organize -> refine -> re-analyze -> slim down -> wrap up. First 3 steps are automatic, last 5 triggered by `/reflect` |
+| Mid-session checkpoint | Every 20 messages, auto-saves a checkpoint with mini-analysis (top actions + project names) |
+| `/reflect` auto-reminder | SessionStart checks when you last ran `/reflect`. If it's been 7+ days, nudges you |
+| Recurring pitfall alert | Same mistake 3+ times across different days? SessionStart suggests writing it into permanent rules |
+| Tree-shaped data decisions | `/reflect` step 5 now uses 4 questions instead of mechanical merging: Should it grow? -> Can it be condensed? -> Already covered by existing rules? -> Delete only as last resort |
+| SessionEnd bug fixes | Fixed transcript parser (was broken since v1.0), added IDE noise filtering, 5-layer project tag detection, raised pitfall threshold to 5 |
+
+<details>
+<summary>v1.2 changes</summary>
 
 | Feature | Description |
 | :------ | :---------- |
@@ -43,6 +57,8 @@ Every new conversation, Claude forgets everything.
 | `/todo` | Cross-project task tracking |
 | `/recover` | Disaster recovery when local memory is lost |
 | `/compact-guide` | Smart guide for when to compress context |
+
+</details>
 
 <details>
 <summary>v1.1 changes</summary>
@@ -79,6 +95,7 @@ Every new conversation, Claude forgets everything.
 | Context management | `/compact-guide` tells you when to compress and when not to |
 | Bilingual commands | Every command in English + Traditional Chinese (28 files), each written natively |
 | Backup & sync | `/backup` and `/sync` with GitHub, bidirectional |
+| Student Loop | 8-step learning cycle: notes -> link -> learn -> review -> refine -> re-learn -> slim -> conclude. Like exam prep for AI |
 
 > Not just a notepad -- a filing system with health checks, disaster recovery, and self-maintenance.
 
@@ -86,7 +103,7 @@ Every new conversation, Claude forgets everything.
 
 ## The Solution
 
-Memory Engine uses **5 hooks** and **14 commands** (each with English + Chinese versions) to fix all of this.
+Memory Engine uses **7 hooks** and **14 commands** (each with English + Chinese versions) to fix all of this.
 
 ### :link: Hooks (Automatic)
 
@@ -98,6 +115,7 @@ You don't need to do anything -- these hooks run in the background on their own.
 | `session-end` | Every conversation end | Saves what you did, which files changed, and scans for pitfall patterns |
 | `memory-sync` | Every message you send | Detects if memory files were updated by another session, shows what changed |
 | `write-guard` | Before every file write | Warns when writing to `.env`, `credentials`, or other sensitive files |
+| `mid-session-checkpoint` | Every 20 messages | Saves a mid-conversation checkpoint with mini-analysis of what you've been doing |
 | `pre-push-check` | Before every git push | Checks staged files for secrets, extra warning on force push |
 
 ### :speech_balloon: Commands
@@ -221,6 +239,15 @@ mkdir -p ~/.claude/scripts/hooks
             "command": "node ~/.claude/scripts/hooks/memory-sync.js"
           }
         ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/mid-session-checkpoint.js"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -271,7 +298,7 @@ Memory files live in `~/.claude/projects/{project-id}/memory/`.
 
 | Signal | How It's Detected | Example |
 | :----- | :---------------- | :------ |
-| 3+ retries | Same tool called 3+ times on same file | Edit the same file 4 times |
+| 5+ retries | Same tool called 5+ times on same file | Edit the same file 5 times |
 | Error then fix | Error appears, then same area succeeds | Build fails -> fix code -> build passes |
 | User correction | User says "wrong", "revert" (EN) or "不對", "錯了", "改回來" (ZH) | "That's not the right file" |
 | Back-and-forth | Same file edited repeatedly in quick succession | Changed CSS then changed it back |
@@ -279,6 +306,8 @@ Memory files live in `~/.claude/projects/{project-id}/memory/`.
 Detected pitfalls are saved to `~/.claude/skills/learned/auto-pitfall-{date}.md` and reviewed at the start of the next session.
 
 In v1.1, pitfall records also include the **solution** -- the successful fix extracted from the same conversation, so you get both the problem and the answer.
+
+> v1.3 excludes normal-repeat tools (TodoWrite, Agent, Read, Grep, Glob) from retry detection to reduce false positives.
 
 ---
 
@@ -291,6 +320,7 @@ claude-memory-engine/
     session-end.js          # Session end -> save summary + detect pitfalls
     memory-sync.js          # Every message -> cross-session memory sync
     write-guard.js          # Before file write -> sensitive file warning
+    mid-session-checkpoint.js # Every 20 messages -> mid-conversation checkpoint
     pre-push-check.js       # Before git push -> safety check
   commands/
     # Daily Operations
