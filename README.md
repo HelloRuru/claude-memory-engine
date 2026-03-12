@@ -69,7 +69,7 @@ At the end of every conversation, Claude automatically does three things:
 
 Every 20 messages, it also saves a mid-session checkpoint — so nothing important gets lost when long conversations are compressed.
 
-**When context is full** — most conversations don't end with `/exit`. They run until context is full, get compressed, and keep going. The `PreCompact` hook catches this moment and saves a snapshot before compression — same work as SessionEnd (summary, pitfall detection, backup). This is the real safety net.
+**When context is full** — instead of waiting for the conversation to end, `PreCompact` fires one step earlier: right before context compression. It saves a snapshot at that moment (summary, pitfall detection, backup), so no matter how the conversation continues or stops, there's always a save point to pick up from.
 
 **Final exam review (manual, run `/reflect`)**
 
@@ -326,7 +326,7 @@ Plugins are black boxes. Hooks + Commands are transparent — every `.js` file i
 **v1.4 — The Real Safety Net**
 - PreCompact hook — saves snapshot before context compression (auto or manual)
 - Cross-device sync — GitHub memory repo works across machines, `/recover` on new device pulls everything back
-- Most conversations don't end with `/exit` — PreCompact catches what SessionEnd misses
+- Fires one step before compression — always has a save point, no matter how the conversation ends
 
 **v1.3 — The Student Loop**
 - 8-step learning cycle (first 3 automatic, last 5 via `/reflect`)
