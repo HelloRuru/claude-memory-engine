@@ -6,9 +6,13 @@ Restore memory from your GitHub backup when local memory files are lost or corru
 
 You need a GitHub repo set up as your memory backup (the one you push to with `/backup` or `/sync`). If you haven't created a backup repo yet, this command won't work.
 
+## Cross-device Sync
+
+With a GitHub backup repo, this command works across devices. For example: memories created on your laptop can be pulled to your desktop with `/recover`. Different machines stay in sync via GitHub -- no manual file copying needed.
+
 ## When to Use
 
-- Switched to a new computer
+- Switched to a new computer and need to bring over memories from another device
 - Local memory files were accidentally deleted
 - SessionStart hook isn't working
 - Memory files appear corrupted or empty

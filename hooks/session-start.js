@@ -53,7 +53,7 @@ function findLatestSession() {
   const maxAge = MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 
   const files = fs.readdirSync(SESSIONS_DIR)
-    .filter(f => f.endsWith('-session.md'))
+    .filter(f => f.endsWith('-session.md') || f.endsWith('-compact.md') || f.endsWith('-checkpoint.md'))
     .map(f => ({
       name: f,
       path: path.join(SESSIONS_DIR, f),
@@ -245,7 +245,7 @@ function main() {
     if (latest) {
       const content = fs.readFileSync(latest.path, 'utf-8').trim();
       if (content && content.length >= 20) {
-        const date = latest.name.split('-session.md')[0];
+        const date = latest.name.replace(/-(session|compact|checkpoint)\.md$/, '');
         output.push(`[Session Hook] 上次工作摘要（${date}）：\n${content}`);
       }
     }

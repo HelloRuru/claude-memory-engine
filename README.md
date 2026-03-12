@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.3-C4B7D7?style=flat-square" alt="v1.3">
+  <img src="https://img.shields.io/badge/version-1.4-C4B7D7?style=flat-square" alt="v1.4">
 </p>
 
 <p align="center">
@@ -69,6 +69,8 @@ At the end of every conversation, Claude automatically does three things:
 
 Every 20 messages, it also saves a mid-session checkpoint — so nothing important gets lost when long conversations are compressed.
 
+**When context is full** — most conversations don't end with `/exit`. They run until context is full, get compressed, and keep going. The `PreCompact` hook catches this moment and saves a snapshot before compression — same work as SessionEnd (summary, pitfall detection, backup). This is the real safety net.
+
 **Final exam review (manual, run `/reflect`)**
 
 After a few days of notes, run `/reflect` and Claude will:
@@ -96,6 +98,7 @@ Memory and learning are the core, but day-to-day work needs more:
 | Health | `/check` daily scan + `/full-check` weekly audit to keep the memory system healthy |
 | Tasks | `/todo` tracks pending items across all projects |
 | Backup | `/backup` `/sync` connect to GitHub — bidirectional sync, safe even if your machine dies |
+| Cross-device | Set up a GitHub memory repo, and your memory works across machines. New device? Run `/recover` and it's all there |
 | Recovery | `/recover` restores lost memory from GitHub backup |
 | Search | `/memory-search` keyword search across all memory files |
 | Bilingual | Every command has an English + Traditional Chinese version (28 files) |
@@ -140,12 +143,13 @@ Memory and learning are the core, but day-to-day work needs more:
 </details>
 
 <details>
-<summary><strong>7 Hooks (all automatic)</strong></summary>
+<summary><strong>8 Hooks (all automatic)</strong></summary>
 
 | Hook | Trigger | What it does |
 | :--- | :------ | :----------- |
 | `session-start` | New conversation | Load last summary + project memory |
 | `session-end` | Conversation ends | Save summary + pitfall detection |
+| `pre-compact` | Context compression (auto or manual) | Save snapshot + pitfall detection + backup — the real safety net |
 | `memory-sync` | Every message sent | Detect cross-session memory changes |
 | `write-guard` | Before file writes | Sensitive file interception |
 | `pre-push-check` | Before git push | Safety check |
@@ -155,11 +159,27 @@ Memory and learning are the core, but day-to-day work needs more:
 
 ---
 
+## :arrows_counterclockwise: Cross-device Sync
+
+Memory Engine supports cross-device sync through a GitHub repo. Set it up once, and your memory works on every machine.
+
+**How it works:**
+
+1. `/backup` pushes local memory to your private GitHub repo
+2. `/sync` does bidirectional sync — push local changes, pull remote updates
+3. `/recover` on a new device pulls everything back — all your memory, pitfall records, project history
+
+**What this means:** Switch laptops, reinstall your OS, set up a new workstation — run `/recover` and Claude picks up right where you left off. No re-explaining your preferences, no lost context.
+
+> The GitHub repo is private by default. Your memory never touches any external service beyond your own GitHub account.
+
+---
+
 ## :package: Installation
 
-**Step 1** — Create a GitHub repo for memory backup:
+**Step 1** — Create a GitHub repo for memory backup (cross-device sync):
 
-> Without a backup repo, `/backup`, `/sync`, and `/recover` won't work. Memory only lives locally — if your machine dies, it's all gone.
+> Without a backup repo, `/backup`, `/sync`, and `/recover` won't work. Memory only lives locally — if your machine dies, it's all gone. With a repo, your memory works across devices.
 
 ```bash
 gh repo create claude-memory --private
@@ -222,6 +242,17 @@ mkdir -p ~/.claude/scripts/hooks
           {
             "type": "command",
             "command": "node ~/.claude/scripts/hooks/mid-session-checkpoint.js"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/hooks/pre-compact.js"
           }
         ]
       }
@@ -292,6 +323,11 @@ Plugins are black boxes. Hooks + Commands are transparent — every `.js` file i
 <details>
 <summary><strong>Changelog</strong></summary>
 
+**v1.4 — The Real Safety Net**
+- PreCompact hook — saves snapshot before context compression (auto or manual)
+- Cross-device sync — GitHub memory repo works across machines, `/recover` on new device pulls everything back
+- Most conversations don't end with `/exit` — PreCompact catches what SessionEnd misses
+
 **v1.3 — The Student Loop**
 - 8-step learning cycle (first 3 automatic, last 5 via `/reflect`)
 - Mid-session checkpoints (every 20 messages)
@@ -318,6 +354,7 @@ claude-memory-engine/
   hooks/
     session-start.js          # New session -> load recall + smart-context
     session-end.js            # Session end -> save summary + pitfall detection
+    pre-compact.js            # Context compression -> snapshot + pitfall + backup
     memory-sync.js            # Every message -> cross-session memory sync
     write-guard.js            # Before file write -> sensitive file warning
     pre-push-check.js         # Before git push -> safety check
