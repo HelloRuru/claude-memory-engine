@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.4-C4B7D7?style=flat-square" alt="v1.4">
+  <img src="https://img.shields.io/badge/version-1.5-C4B7D7?style=flat-square" alt="v1.5">
 </p>
 
 <p align="center">
@@ -83,6 +83,24 @@ After a few days of notes, run `/reflect` and Claude will:
 
 > This isn't a one-time thing. Each cycle makes the notes sharper, the patterns clearer, the mistakes fewer. It's a loop that keeps improving.
 
+### :pencil2: Correction Cycle
+
+Some mistakes don't show up in error logs.
+
+You correct its output, and only then does it realize — "oh, that was wrong." These mistakes don't get remembered automatically. Unless someone builds it an error notebook.
+
+**Analyze** (`/analyze`) — The exam comes back graded
+
+You fix its work, it compares both versions line by line against existing rules. Known rules it missed — logged, counted. Patterns not yet in the rules — distilled into new ones.
+
+**Correct** (auto, before tasks) — Quick flip through past mistakes
+
+Before starting work, scan the list. Not re-learning — just a reminder: "I got this wrong last time, don't repeat it."
+
+**Reflect** (`/reflect` step 6) — Final exam review
+
+Periodically scan the full list. Same mistake 3+ times — upgrade to a hard rule. Already internalized — mark cleared, free up space. But you know that from here on, your AI has grown a little more.
+
 ### :detective: Smart Context + Auto Learn
 
 **Smart Context** — whatever folder you're working in, it loads that project's memory. No config, no manual switching.
@@ -101,7 +119,7 @@ Memory and learning are the core, but day-to-day work needs more:
 | Cross-device | Set up a GitHub memory repo, and your memory works across machines. New device? Run `/recover` and it's all there |
 | Recovery | `/recover` restores lost memory from GitHub backup |
 | Search | `/memory-search` keyword search across all memory files |
-| Bilingual | Every command has an English + Traditional Chinese version (28 files) |
+| Bilingual | Every command has an English + Traditional Chinese version (30 files) |
 
 <details>
 <summary><strong>Full command list</strong></summary>
@@ -140,6 +158,18 @@ Memory and learning are the core, but day-to-day work needs more:
 | `/recover` | `/想起來` | Restore memory from GitHub backup |
 | `/compact-guide` | `/壓縮建議` | Guide for when to compress and when not to |
 
+**Collaboration**
+
+You have three Claude Code windows open. One's fixing a bug, one's writing docs, one's cleaning up code. You switch over — and that window has zero clue what you were just doing.
+
+`/save` is for things you want to remember long-term. `/backup` pushes everything to GitHub. `/handoff` is for right now — what you were working on, what's done, what's not.
+
+| EN | ZH | Function |
+| :--- | :- | :--- |
+| `/handoff` | `/交接` | Generate a handoff file so another session can pick up where you left off |
+
+**How it works:** Run `/handoff` in window A. It saves a handoff file with your progress, decisions, and unfinished tasks. Window B picks it up automatically — no command needed on the receiving end. If B is already mid-conversation, it detects the new handoff in real time. If B starts a new conversation, it loads the handoff on startup. Either way, B sees it once and moves on.
+
 </details>
 
 <details>
@@ -147,10 +177,10 @@ Memory and learning are the core, but day-to-day work needs more:
 
 | Hook | Trigger | What it does |
 | :--- | :------ | :----------- |
-| `session-start` | New conversation | Load last summary + project memory |
+| `session-start` | New conversation | Load last summary + project memory + pending handoffs |
 | `session-end` | Conversation ends | Save summary + pitfall detection |
 | `pre-compact` | Context compression (auto or manual) | Save snapshot + pitfall detection + backup — the real safety net |
-| `memory-sync` | Every message sent | Detect cross-session memory changes |
+| `memory-sync` | Every message sent | Detect cross-session memory changes + new handoffs |
 | `write-guard` | Before file writes | Sensitive file interception |
 | `pre-push-check` | Before git push | Safety check |
 | `mid-session-checkpoint` | Every 20 messages | Save checkpoint + mini analysis |
@@ -287,11 +317,44 @@ mkdir -p ~/.claude/scripts/hooks
 
 ---
 
+## :rocket: Quick Start
+
+Done installing? Here's what to do next.
+
+1. **Just start working** — open Claude Code and go. `session-start` loads your last session's context automatically
+2. **Just close when done** — `session-end` saves a summary and detects pitfalls on its own
+3. **Want to remember something?** — `/save` stores it in long-term memory
+4. **Switching windows?** — `/handoff` passes your progress to the next window
+5. **After a few days** — `/reflect` reviews your notes, finds patterns, cleans up
+
+That's it. Everything else runs in the background.
+
+---
+
+## :zap: Token Impact
+
+Memory Engine adds almost no token overhead to your daily usage.
+
+| Hook | When it runs | Token cost |
+| :--- | :----------- | :--------- |
+| `session-start` | Once per conversation | ~200–500 tokens (loads last summary + project memory) |
+| `memory-sync` | Every message | **0** unless another session changed memory files |
+| `mid-session-checkpoint` | Every message | **0** unless it's the 20th message |
+| `write-guard` | Before file writes | **0** unless writing a sensitive file |
+| `pre-push-check` | Before git push | **0** unless pushing |
+| `session-end` / `pre-compact` | End of conversation / compression | Output not injected into context |
+
+**SKILL.md** (136 lines) is a learned skill — Claude Code only loads it when relevant, not every conversation.
+
+**Bottom line:** ~200–500 extra tokens at the start of each conversation. Everything else is zero unless triggered.
+
+---
+
 ## :wrench: Customization
 
 | What | Where |
 | :--- | :---- |
-| Context map | Smart Context v1.1 auto-detects (usually no config needed). Override in `session-start.js` |
+| Context map | Smart Context auto-resolves per-project memory directory (no config needed). Override in `session-start.js` |
 | Keywords | `correctionKeywords` in `session-end.js` |
 | Sensitive files | `PROTECTED_PATTERNS` in `write-guard.js` |
 | Retention | `MAX_SESSIONS` in `session-end.js` (default: 30) |
@@ -323,6 +386,14 @@ Plugins are black boxes. Hooks + Commands are transparent — every `.js` file i
 <details>
 <summary><strong>Changelog</strong></summary>
 
+**v1.5 — Session Handoff + Shared Core**
+- Session Handoff — switch between Claude Code windows without losing context. `/handoff` saves a handoff file, the next session picks it up automatically
+- Correction Cycle — `/analyze` compares your edits against rules, logs mistakes, builds an error notebook that auto-reviews before each task
+- `shared-utils.js` — extracted shared functions from `session-end.js` and `pre-compact.js`, eliminating ~80% duplicated code
+- Smart Context now resolves the correct memory directory per-project automatically — no hardcoded paths
+- Backup scope expanded: hooks, engine skill, and all project memories included in `/backup` and `/sync`
+- 30 bilingual command files (EN + ZH), up from 28
+
 **v1.4 — The Real Safety Net**
 - PreCompact hook — saves snapshot before context compression (auto or manual)
 - Cross-device sync — GitHub memory repo works across machines, `/recover` on new device pulls everything back
@@ -352,10 +423,11 @@ Plugins are black boxes. Hooks + Commands are transparent — every `.js` file i
 ```
 claude-memory-engine/
   hooks/
-    session-start.js          # New session -> load recall + smart-context
+    session-start.js          # New session -> load recall + smart-context + handoff
     session-end.js            # Session end -> save summary + pitfall detection
     pre-compact.js            # Context compression -> snapshot + pitfall + backup
-    memory-sync.js            # Every message -> cross-session memory sync
+    shared-utils.js           # Shared functions (transcript, pitfall, backup)
+    memory-sync.js            # Every message -> cross-session memory sync + handoff
     write-guard.js            # Before file write -> sensitive file warning
     pre-push-check.js         # Before git push -> safety check
     mid-session-checkpoint.js # Every 20 messages -> checkpoint
@@ -374,6 +446,7 @@ claude-memory-engine/
     memory-search.md / 搜尋記憶.md
     recover.md / 想起來.md
     compact-guide.md / 壓縮建議.md
+    handoff.md / 交接.md        # Session handoff
   skill/
     SKILL.md
     references/
