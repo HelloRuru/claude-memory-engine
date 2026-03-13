@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.5.1-C4B7D7?style=flat-square" alt="v1.5.1">
+  <img src="https://img.shields.io/badge/version-1.5.2-C4B7D7?style=flat-square" alt="v1.5.2">
 </p>
 
 <p align="center">
@@ -424,6 +424,13 @@ Memory Engine adds almost no token overhead to your daily usage.
 
 <details>
 <summary><strong>Changelog</strong></summary>
+
+**v1.5.2 — Save System Rewrite**
+- Pitfall detection moved from `session-end` to `pre-compact` (runs before compression, catches more context)
+- Save system documented with three save points ranked by reliability
+- `reflect.md`, `反思.md`, `交接.md` generalized for public use
+- Correction Cycle FAQ added (EN + ZH, 3 questions each)
+- Design Philosophy converted to bullet-point format
 
 **v1.5.1 — Quick Reference**
 - Added `/overview` (`/全覽`) to command tables and SKILL.md

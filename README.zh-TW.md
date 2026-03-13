@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.5.1-C4B7D7?style=flat-square" alt="v1.5.1">
+  <img src="https://img.shields.io/badge/version-1.5.2-C4B7D7?style=flat-square" alt="v1.5.2">
 </p>
 
 <p align="center">
@@ -426,6 +426,13 @@ Memory Engine 幾乎不會增加日常的 token 用量。
 
 <details>
 <summary><strong>版本紀錄</strong></summary>
+
+**v1.5.2 — 存檔系統重寫**
+- 踩坑偵測從 `session-end` 搬到 `pre-compact`（壓縮前跑，context 最完整）
+- 存檔系統說明改寫，三個存檔點按可靠度排序
+- `reflect.md`、`反思.md`、`交接.md` 通用化，移除私人資料
+- 訂正機制 FAQ（中英各 3 題）
+- 設計理念改為列點格式
 
 **v1.5.1 — 快速參考**
 - 指令表和 SKILL.md 加入 `/全覽`（`/overview`）

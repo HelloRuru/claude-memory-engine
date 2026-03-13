@@ -3,7 +3,7 @@ name: memory-engine
 description: Memory management system for Claude Code — Student Loop, Smart Context, Auto Learn, Session Handoff, Correction Cycle. Triggered by memory commands (/save, /reflect, /handoff, /check) or memory-related questions. Not for general programming tasks.
 ---
 
-# Memory Engine v1.5
+# Memory Engine v1.5.2
 
 A memory and learning system for Claude Code, built with hooks and markdown.
 
