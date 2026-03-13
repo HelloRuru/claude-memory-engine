@@ -61,15 +61,18 @@ Memory Engine doesn't just help Claude remember — it teaches Claude to learn l
 
 **In class (automatic, runs every session)**
 
-At the end of every conversation, Claude automatically does three things:
+There is no real "end" to a Claude Code conversation — it might close, idle out, or get compressed. So Memory Engine doesn't rely on any single moment. Instead, it saves at three different points:
 
-1. **Takes notes** — records what was done, which files changed, key decisions made
-2. **Links them** — tags the project, connects to previous notes
-3. **Spots patterns** — scans the conversation for pitfall signals (retrying the same thing 5+ times, errors followed by fixes, user corrections, back-and-forth edits)
+1. **Every 20 messages** (`mid-session-checkpoint`) — saves a checkpoint + mini analysis. The most reliable save point, because it counts messages itself
+2. **Before context compression** (`pre-compact`) — fires right before context is compressed. Saves a snapshot, detects pitfalls, runs backup. This is when context is fullest, so pitfall detection is most accurate here
+3. **When the conversation ends** (`session-end`) — saves a final summary + backup. Nice to have, but not guaranteed to fire (window might just close)
 
-Every 20 messages, it also saves a mid-session checkpoint — so nothing important gets lost when long conversations are compressed.
+You don't need to remember to run any command before closing — your important stuff is already saved before you close.
 
-**When context is full** — instead of waiting for the conversation to end, `PreCompact` fires one step earlier: right before context compression. It saves a snapshot at that moment (summary, pitfall detection, backup), so no matter how the conversation continues or stops, there's always a save point to pick up from.
+On top of that, Claude also:
+- **Takes notes** — records what was done, which files changed, key decisions made
+- **Links them** — tags the project, connects to previous notes
+- **Spots patterns** — scans for pitfall signals (retrying 5+ times, errors followed by fixes, user corrections)
 
 **Final exam review (manual, run `/reflect`)**
 
@@ -210,7 +213,7 @@ You have three Claude Code windows open. One's fixing a bug, one's writing docs,
 | Hook | Trigger | What it does |
 | :--- | :------ | :----------- |
 | `session-start` | New conversation | Load last summary + project memory + pending handoffs |
-| `session-end` | Conversation ends | Save summary + pitfall detection |
+| `session-end` | Conversation ends | Save summary + backup (best-effort, may not fire) |
 | `pre-compact` | Context compression (auto or manual) | Save snapshot + pitfall detection + backup — the real safety net |
 | `memory-sync` | Every message sent | Detect cross-session memory changes + new handoffs |
 | `write-guard` | Before file writes | Sensitive file interception |
@@ -354,7 +357,7 @@ mkdir -p ~/.claude/scripts/hooks
 Done installing? Here's what to do next.
 
 1. **Just start working** — open Claude Code and go. `session-start` loads your last session's context automatically
-2. **Just close when done** — `session-end` saves a summary and detects pitfalls on its own
+2. **Just close when done** — `session-end` saves a summary if it fires; `mid-session-checkpoint` and `pre-compact` already have your back
 3. **Want to remember something?** — `/save` stores it in long-term memory
 4. **Switching windows?** — `/handoff` passes your progress to the next window
 5. **After a few days** — `/reflect` reviews your notes, finds patterns, cleans up
@@ -387,7 +390,7 @@ Memory Engine adds almost no token overhead to your daily usage.
 | What | Where |
 | :--- | :---- |
 | Context map | Smart Context auto-resolves per-project memory directory (no config needed). Override in `session-start.js` |
-| Keywords | `correctionKeywords` in `session-end.js` |
+| Keywords | `correctionKeywords` in `shared-utils.js` |
 | Sensitive files | `PROTECTED_PATTERNS` in `write-guard.js` |
 | Retention | `MAX_SESSIONS` in `session-end.js` (default: 30) |
 
@@ -464,8 +467,8 @@ Memory Engine adds almost no token overhead to your daily usage.
 claude-memory-engine/
   hooks/
     session-start.js          # New session -> load recall + smart-context + handoff
-    session-end.js            # Session end -> save summary + pitfall detection
-    pre-compact.js            # Context compression -> snapshot + pitfall + backup
+    session-end.js            # Session end -> save summary + backup (best-effort)
+    pre-compact.js            # Context compression -> snapshot + pitfall detection + backup
     shared-utils.js           # Shared functions (transcript, pitfall, backup)
     memory-sync.js            # Every message -> cross-session memory sync + handoff
     write-guard.js            # Before file write -> sensitive file warning

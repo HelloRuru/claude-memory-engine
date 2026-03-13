@@ -61,15 +61,18 @@ Memory Engine 不只幫 Claude 記東西，還讓它像學生一樣學習：
 
 **上課（自動，每次對話都在跑）**
 
-每次對話結束，Claude 自動做三件事：
+Claude Code 的對話沒有真正的「結束」— 可能視窗關掉、可能閒置、可能被壓縮。所以 Memory Engine 不依賴單一時機，而是在三個不同的點存檔：
 
-1. **抄筆記** — 記下做了什麼、改了哪些檔案、關鍵決策
-2. **串連** — 標記屬於哪個專案，跟之前的筆記連起來
-3. **找規律** — 掃描對話，偵測踩坑模式（重試 5 次、出錯後修正、使用者糾正、來回修改）
+1. **每 20 則訊息**（`mid-session-checkpoint`）— 存中繼紀錄 + mini 分析。最可靠的存檔點，因為是自己數的
+2. **context 壓縮前**（`pre-compact`）— 壓縮前觸發。存快照、偵測踩坑、備份。這時 context 最完整，踩坑偵測最準
+3. **對話結束時**（`session-end`）— 存最終摘要 + 備份。能跑就跑，但不保證一定觸發（視窗可能直接關掉）
 
-每 20 則訊息還會自動存一份中繼紀錄，不怕對話太長、壓縮後遺失。
+不用擔心「忘了打什麼指令就關掉」— 重要的東西在你關掉之前就已經存好了。
 
-**context 滿的時候** — 與其等對話結束，`PreCompact` 選擇往前一步：在 context 壓縮之前就觸發。壓縮前先存一份快照（摘要、踩坑偵測、備份），不管對話後來怎麼走、怎麼停，都有存檔點可以接上。
+除了存檔，Claude 還會：
+- **抄筆記** — 記下做了什麼、改了哪些檔案、關鍵決策
+- **串連** — 標記屬於哪個專案，跟之前的筆記連起來
+- **找規律** — 偵測踩坑模式（重試 5 次、出錯後修正、使用者糾正）
 
 **期末總複習（手動，用 `/反思` 觸發）**
 
@@ -210,7 +213,7 @@ Memory Engine 不只幫 Claude 記東西，還讓它像學生一樣學習：
 | Hook | 觸發時機 | 做什麼 |
 | :--- | :------- | :----- |
 | `session-start` | 開新對話 | 載入上次摘要 + 專案記憶 + 待接收交接 |
-| `session-end` | 對話結束 | 存摘要 + 踩坑偵測 |
+| `session-end` | 對話結束 | 存摘要 + 備份（能跑就跑，不保證觸發） |
 | `pre-compact` | context 壓縮時（自動或手動） | 壓縮前快照 + 踩坑偵測 + 備份 — 真正的安全網 |
 | `memory-sync` | 每次送訊息 | 偵測跨 session 記憶變更 + 新交接 |
 | `write-guard` | 寫入檔案前 | 敏感檔案攔截 |
@@ -354,7 +357,7 @@ mkdir -p ~/.claude/scripts/hooks
 裝完了？接下來這樣用。
 
 1. **直接開始工作** — 打開 Claude Code 就好。`session-start` 會自動載入上次的脈絡
-2. **做完直接關** — `session-end` 自動存摘要、偵測踩坑
+2. **做完直接關** — `session-end` 能跑就存摘要；`mid-session-checkpoint` 和 `pre-compact` 已經先存過了
 3. **想記住什麼？** — `/存記憶` 存到長期記憶
 4. **要切視窗？** — `/交接` 把進度傳給下一個視窗
 5. **累積幾天後** — `/反思` 整理筆記、找規律、清理過期的
@@ -387,7 +390,7 @@ Memory Engine 幾乎不會增加日常的 token 用量。
 | 想改什麼 | 去哪裡改 |
 | :------- | :------ |
 | 對應表 | Smart Context 自動解析每個專案的記憶目錄（不用設定），可在 `session-start.js` 調整 |
-| 踩坑關鍵字 | `session-end.js` 的 `correctionKeywords` |
+| 踩坑關鍵字 | `shared-utils.js` 的 `correctionKeywords` |
 | 敏感檔案 | `write-guard.js` 的 `PROTECTED_PATTERNS` |
 | 保留數量 | `session-end.js` 的 `MAX_SESSIONS`（預設 30） |
 
@@ -466,7 +469,7 @@ Memory Engine 幾乎不會增加日常的 token 用量。
 claude-memory-engine/
   hooks/
     session-start.js          # 開新對話 -> 載入回憶 + smart-context + 交接
-    session-end.js            # 對話結束 -> 存摘要 + 踩坑偵測
+    session-end.js            # 對話結束 -> 存摘要 + 備份（能跑就跑）
     pre-compact.js            # context 壓縮前 -> 快照 + 踩坑偵測 + 備份
     shared-utils.js           # 共用函式（transcript、踩坑、備份）
     memory-sync.js            # 每則訊息 -> 跨 session 記憶同步 + 交接

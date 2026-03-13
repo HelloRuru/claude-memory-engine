@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
- * SessionEnd Hook — session 結束自動存檔 + 踩坑學習
- * Session end: auto-save summary + pitfall detection
+ * SessionEnd Hook — session 結束自動存檔
+ * Session end: auto-save summary
  *
- * 共用函式已抽到 shared-utils.js
+ * 踩坑偵測已移到 pre-compact.js（壓縮前學習，時機更早更完整）
+ * Pitfall detection moved to pre-compact.js (runs before compression, catches more context)
+ *
+ * 共用函式已抽到 shared-utils.js / Shared functions in shared-utils.js
  */
 
 const fs = require('fs');
 const path = require('path');
 const {
   SESSIONS_DIR, ensureDir, debugLog: _debugLog,
-  parseTranscript, detectProjectTag, detectPitfalls, savePitfalls,
+  parseTranscript, detectProjectTag,
   updateProjectIndex, autoBackup,
 } = require('./shared-utils');
 
@@ -105,12 +108,7 @@ ${parsed.filesModified.length > 0 ? parsed.filesModified.map(f => `- ${f}`).join
     // 更新專案索引 / Update project index
     updateProjectIndex(projectTag, dateStr, timeStr, titleHint, filename);
 
-    // 踩坑偵測 / Pitfall detection
-    const pitfalls = detectPitfalls(parsed);
-    log(`pitfalls detected: ${pitfalls.length}`);
-    if (pitfalls.length > 0) {
-      savePitfalls(pitfalls);
-    }
+    // 踩坑偵測已移到 pre-compact.js / Pitfall detection moved to pre-compact.js
 
     // 自動備份 / Auto backup
     autoBackup();

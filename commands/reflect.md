@@ -1,106 +1,106 @@
-# /reflect — Learning Loop 後五步（回顧 -> 整理 -> 精煉 -> 再學 -> 瘦身 -> 收尾）
+# /reflect — Learning Loop Steps 4-8 (Review -> Organize -> Refine -> Re-learn -> Trim -> Wrap up)
 
-嚕寶觸發後，小八跑完 Learning Loop 的步驟 4-8。
-分兩段：前半（回顧+整理+歸整）完成後自動接後半（再分析+學習+清除+結論）。
+After the user triggers this command, run Learning Loop steps 4-8.
+Two phases: first half (review + organize) completes, then automatically continues to second half (re-analyze + trim + wrap up).
 
-## 前半：回顧 + 整理 + 歸整（步驟 4-5）
+## First Half: Review + Organize (Steps 4-5)
 
-### 步驟 4：歸位清理（只看不動手）
+### Step 4: Review (read-only, don't change anything yet)
 
-1. **讀專案索引**：讀 `~/.claude/sessions/project-index.md`
-   - 如果嚕寶指定專案（如 `/reflect blog`）→ 只看該專案的 session
-   - 沒指定 → 看所有專案
-2. **讀 session 摘要**：根據索引讀最近 7 天的 session 紀錄（最多 10 份）
-3. **讀踩坑紀錄**：掃描 `~/.claude/skills/learned/auto-pitfall-*.md`
-4. **讀記憶檔案**：掃描 `memory/*.md` 所有記憶檔案
-5. **標記判斷**（只看不改）：
-   - 每個記憶段落標記為：`有效` / `過時` / `重複` / `待更新`
-   - 每個踩坑紀錄標記為：`已內化`（寫進 CLAUDE.md 了）/ `仍需注意` / `可清除`
+1. **Read project index**: Read `~/.claude/sessions/project-index.md`
+   - If the user specifies a project (e.g., `/reflect blog`) → only look at that project's sessions
+   - No project specified → look at all projects
+2. **Read session summaries**: Based on the index, read the last 7 days of session records (max 10)
+3. **Read pitfall records**: Scan `~/.claude/skills/learned/auto-pitfall-*.md`
+4. **Read memory files**: Scan all `memory/*.md` files
+5. **Tag each item** (read-only, don't edit yet):
+   - Each memory paragraph: `active` / `outdated` / `duplicate` / `needs update`
+   - Each pitfall record: `internalized` (already in CLAUDE.md) / `still relevant` / `can remove`
 
-### 步驟 5：精煉資料（根據標記動手，用樹狀四問決策）
+### Step 5: Refine (act on tags, use the 4-question decision tree)
 
-每段資料過四問再動手，不要機械式合併：
-- **Q1 是否要長？** 這段資料服務主幹嗎？→ 不服務就剪（標記待清除）
-- **Q2 成長（濃縮取代）？** 能跟其他段落合併成更精煉的版本嗎？→ 精煉版寫好，原始版自然被取代
-- **Q3 融會貫通？** 能套用已有的 CLAUDE.md 原則嗎？→ 已有原則涵蓋的就不重複記
-- **Q4 清是最後防線** → 只有 Q1-Q3 都不適用時才標記清除，幾乎不該用到
+Run each item through four questions before acting — don't merge mechanically:
+- **Q1 Still needed?** Does this item serve the core workflow? → If not, mark for removal
+- **Q2 Can condense?** Can it merge with another item into a tighter version? → Write the refined version, it naturally replaces the originals
+- **Q3 Already covered?** Is this already covered by a CLAUDE.md rule? → If yes, don't duplicate it in memory
+- **Q4 Remove as last resort** → Only if Q1-Q3 don't apply. Rarely needed
 
-6. **合併重複**：找出 memory/*.md 中重複的段落，用 Q2 濃縮取代（精煉版取代原始版）
-7. **更新過時**：標記「過時」的段落，用 Q1 判斷是否還服務主幹
-8. **歸位**：放錯地方的內容搬到正確的 HOOK 檔案
+6. **Merge duplicates**: Find duplicate paragraphs in memory/*.md, condense using Q2
+7. **Update outdated**: Items tagged "outdated" — use Q1 to decide if they still serve the core workflow
+8. **Relocate**: Move misplaced content to the correct HOOK file
 
-## 後半：再分析 + 學習 + 清除 + 結論（步驟 6-8）
+## Second Half: Re-analyze + Trim + Wrap up (Steps 6-8)
 
-前半完成後自動接著跑，不用嚕寶再觸發。
+Runs automatically after first half completes. No need for the user to trigger again.
 
-### 步驟 6：用精煉版再學
+### Step 6: Re-learn from refined data
 
-9. **分析規律**（用整理過的乾淨資料）：
-   - 嚕寶最常做的工作類型？
-   - 哪些踩坑重複出現？應該寫進 CLAUDE.md？
-   - 有沒有新的偏好或工作習慣？
-   - 哪些 HOOK 觸發詞要補？
-10. **比較差異**：這次分析結果 vs 上次 /reflect 的結論（如果有的話）
+9. **Analyze patterns** (using the cleaned-up data):
+   - What types of work does the user do most?
+   - Which pitfalls keep recurring? Should any be added to CLAUDE.md?
+   - Any new preferences or work habits?
+   - Any HOOK trigger words that need updating?
+10. **Compare**: This analysis vs. the last /reflect conclusion (if one exists)
 
-### 步驟 7：瘦身（標記待清除，不直接刪）
+### Step 7: Trim (mark for removal, don't delete directly)
 
-11. **列出清除清單**：
-    - 已內化的踩坑紀錄
-    - 合併後多餘的重複段落
-    - 超過 30 天沒更新且標記「過時」的記憶
-12. **顯示清單讓嚕寶掃一眼**
-13. **嚕寶確認後標記「待清除」**，下次 /reflect 才真刪
+11. **List removal candidates**:
+    - Internalized pitfall records
+    - Duplicate paragraphs left over after merging
+    - Memories not updated in 30+ days and tagged "outdated"
+12. **Show the list to the user for review**
+13. **After user confirms, mark as "pending removal"** — actual deletion happens next /reflect
 
-### 步驟 8：收尾（結論）
+### Step 8: Wrap up (conclusion)
 
-14. **成果報告**：
-    - 這一圈學到什麼
-    - 改了什麼（合併/更新/歸位）
-    - 下一圈要注意什麼
-    - 建議的 CLAUDE.md / MEMORY.md 更新（列出但不自動改）
-15. **存結論**：存到 `~/.claude/sessions/reflect-{日期}.md`
+14. **Report**:
+    - What was learned this cycle
+    - What was changed (merged/updated/relocated)
+    - What to watch for next cycle
+    - Suggested CLAUDE.md / MEMORY.md updates (listed but not auto-applied)
+15. **Save conclusion**: Save to `~/.claude/sessions/reflect-{date}.md`
 
-## 輸出格式
+## Output format
 
 ```
-=== Learning Loop 反思報告（{日期}）===
+=== Learning Loop Reflection Report ({date}) ===
 
---- 前半：回顧 + 整理 ---
+--- First Half: Review + Organize ---
 
-專案統計：
-- 近 7 天共 X 次 session，最常碰：{專案名}
-- 最常用的工具：{列表}
+Project stats:
+- X sessions in the last 7 days, most active: {project name}
+- Most used tools: {list}
 
-記憶健檢：
-- 有效：X 段 / 過時：X 段 / 重複：X 段
-- 精煉動作：合併 X 段、更新 X 段、歸位 X 段
+Memory health:
+- Active: X items / Outdated: X / Duplicate: X
+- Actions: merged X, updated X, relocated X
 
-踩坑統計：
-- 已內化：X 項 / 仍需注意：X 項 / 可清除：X 項
+Pitfall stats:
+- Internalized: X / Still relevant: X / Can remove: X
 
---- 後半：再學 + 瘦身 + 收尾 ---
+--- Second Half: Re-learn + Trim + Wrap up ---
 
-發現的規律：
-1. {規律} -> 建議：{動作}
+Patterns found:
+1. {pattern} -> Suggestion: {action}
 
-清除清單（待嚕寶確認）：
-- [ ] {項目 1}
-- [ ] {項目 2}
+Removal candidates (pending user confirmation):
+- [ ] {item 1}
+- [ ] {item 2}
 
-結論：
-- 學到：{摘要}
-- 改了：{摘要}
-- 下一圈注意：{摘要}
+Conclusion:
+- Learned: {summary}
+- Changed: {summary}
+- Next cycle watch: {summary}
 
-建議更新：
-- [ ] CLAUDE.md 加入：{新規則}
-- [ ] MEMORY.md 更新：{哪個 HOOK}
+Suggested updates:
+- [ ] CLAUDE.md: add {new rule}
+- [ ] MEMORY.md: update {which HOOK}
 ```
 
-## 注意事項
+## Notes
 
-- 前半的「步驟 5 精煉」只動 memory/*.md，不動 CLAUDE.md
-- CLAUDE.md 修改一律提建議，嚕寶確認才改
-- 清除是延遲一圈的：這次標記，下次才真刪
-- 上次 /reflect 標記「待清除」的 → 這次確認後真刪
-- 白話文報告，嚕寶一眼看懂
+- Step 5 "Refine" only edits memory/*.md, never touches CLAUDE.md
+- CLAUDE.md changes are always suggestions only — user confirms before applying
+- Removal is delayed by one cycle: mark this time, actually delete next time
+- Items marked "pending removal" last /reflect → confirm and delete this time
+- Report in plain language the user can understand at a glance

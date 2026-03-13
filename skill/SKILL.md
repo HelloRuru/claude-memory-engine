@@ -19,7 +19,7 @@ Auto-detects the current project from your working directory and loads its memor
 
 ### 2. Auto Learn (Pitfall Detection)
 
-Detects pitfall patterns at session end — retries, errors followed by fixes, user corrections.
+Detects pitfall patterns before context compression — retries, errors followed by fixes, user corrections.
 
 - Saves both the problem and the fix to `~/.claude/skills/learned/`
 - Same mistake 3+ times across different days → suggests writing it into permanent rules
@@ -32,6 +32,13 @@ Detects pitfall patterns at session end — retries, errors followed by fixes, u
 1. Takes notes — records what was done, files changed, decisions made
 2. Links them — tags the project, connects to previous notes
 3. Spots patterns — scans for pitfall signals
+
+There is no real "end" to a Claude Code conversation. Memory Engine saves at three points:
+- **Every 20 messages** (`mid-session-checkpoint`) — most reliable, self-counted
+- **Before context compression** (`pre-compact`) — pitfall detection runs here, context is fullest
+- **When conversation ends** (`session-end`) — best-effort, not guaranteed to fire
+
+You don't need to remember to run any command before closing.
 4. Review — read past 7 days, mark useful vs outdated
 5. Refine — 4-question decision tree (Keep? Condense? Already covered? Delete as last resort)
 6. Re-study — re-analyze cleaned data for buried patterns
@@ -60,8 +67,8 @@ Learns from user corrections — mistakes that don't show up in error logs.
 | Hook | File | What it does |
 | :--- | :--- | :----------- |
 | SessionStart | session-start.js | Load last summary + project memory + pending handoffs + pitfall review + /reflect reminder |
-| SessionEnd | session-end.js | Save summary + pitfall detection + project index |
-| PreCompact | pre-compact.js | Snapshot before context compression + pitfall detection + backup |
+| SessionEnd | session-end.js | Save summary + project index + backup (best-effort, may not fire) |
+| PreCompact | pre-compact.js | Snapshot + pitfall detection + backup — the real safety net |
 | UserPromptSubmit | memory-sync.js | Cross-session memory change detection + handoff detection |
 | UserPromptSubmit | mid-session-checkpoint.js | Checkpoint every 20 messages |
 | PreToolUse(Write) | write-guard.js | Sensitive file write warning |
@@ -98,8 +105,8 @@ Shared logic between `session-end.js` and `pre-compact.js` is extracted into `sh
 ~/.claude/
   scripts/hooks/
     session-start.js         # Load recall + smart-context + handoff
-    session-end.js           # Save summary + pitfall detection
-    pre-compact.js           # Pre-compression snapshot + pitfall + backup
+    session-end.js           # Save summary + backup (best-effort)
+    pre-compact.js           # Pre-compression snapshot + pitfall detection + backup
     shared-utils.js          # Shared functions (transcript, pitfall, backup)
     memory-sync.js           # Cross-session sync + handoff detection
     mid-session-checkpoint.js
