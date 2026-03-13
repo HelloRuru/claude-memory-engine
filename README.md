@@ -85,27 +85,56 @@ After a few days of notes, run `/reflect` and Claude will:
 
 ### :pencil2: Correction Cycle
 
-Some mistakes don't show up in error logs.
+Some mistakes don't show up in error logs. You correct its output, and only then does it realize — "oh, that was wrong." These mistakes don't get remembered automatically. Unless someone builds it an error notebook.
 
-You correct its output, and only then does it realize — "oh, that was wrong." These mistakes don't get remembered automatically. Unless someone builds it an error notebook.
+**Record** (`/analyze`, manual — run right after you correct something)
 
-**Analyze** (`/analyze`, manual) — The exam comes back graded
+- You fix its work, type `/analyze`
+- It compares both versions against existing rules
+- Known rules it missed → logged, counted
+- Patterns not in the rules yet → distilled into new ones
+- The sooner you run it, the fresher the context
 
-You fix its work, it compares both versions line by line against existing rules. Known rules it missed — logged, counted. Patterns not yet in the rules — distilled into new ones.
+**Review** (automatic: before each task / manual: type `/correct` anytime)
 
-**Correct** (automatic, before each task) — Quick flip through past mistakes
+- Before starting work, it scans the error notebook automatically
+- Not re-learning — just a reminder: "I got this wrong last time, don't repeat it"
+- Want to review on your own? Type `/correct` — no need to wait for a task or a cycle
 
-Before starting work, scan the list. Not re-learning — just a reminder: "I got this wrong last time, don't repeat it."
+**Clean up** (`/reflect` step 6, manual)
 
-**Reflect** (`/reflect` step 6, manual) — Final exam review
+- Periodically scan the full notebook
+- Same mistake 3+ times → upgrade to a hard rule
+- Already internalized → mark cleared, free up space
 
-Periodically scan the full list. Same mistake 3+ times — upgrade to a hard rule. Already internalized — mark cleared, free up space. But you know that from here on, your AI has grown a little more.
+But you know that from here on, your AI has grown a little more.
+
+<details>
+<summary><strong>FAQ</strong></summary>
+
+**Can I just type `/correct` directly?**
+Yes. `/correct` works anytime — no need to wait for a task or a cycle. It simply opens the error notebook and shows you what's active.
+
+**How often should I run `/reflect`?**
+There's no fixed schedule. A good rhythm is once a week, or whenever the notebook feels cluttered. Step 6 of `/reflect` handles cleanup — upgrading repeat offenders to hard rules and clearing ones you've already internalized.
+
+**Do I have to run `/analyze` first before `/correct` works?**
+No. `/analyze` records new mistakes; `/correct` reviews existing ones. They're independent. Even if you never run `/analyze`, `/correct` still shows whatever is already in the notebook.
+
+</details>
 
 ### :detective: Smart Context + Auto Learn
 
-**Smart Context** — whatever folder you're working in, it loads that project's memory. No config, no manual switching.
+**Smart Context** (automatic, no config needed)
 
-**Auto Learn** — hit a wall during a session and figured it out? It saves both the problem and the fix, then reminds itself next time. If the same kind of mistake shows up 3+ times across different days, it suggests writing it into permanent rules.
+- Whatever folder you're working in, it loads that project's memory
+- Switch projects and it switches automatically
+
+**Auto Learn** (automatic, on session end)
+
+- Hit a wall and figured it out? It saves both the problem and the fix
+- Reminds itself next time a new conversation starts
+- Same kind of mistake 3+ times across different days → suggests writing it into permanent rules
 
 ### :link: Day-to-day tools
 
@@ -367,10 +396,14 @@ Memory Engine adds almost no token overhead to your daily usage.
 ## :bulb: Design Philosophy
 
 **Why not a database?**
-Markdown files are human-readable, editable, and git-committable. Claude Code already reads `.md` natively — why add complexity?
+- Markdown — you can open it, read it, edit it, git commit it
+- Claude Code already reads `.md` natively — why add complexity?
 
 **Why not a Plugin?**
-Plugins are black boxes. Hooks + Commands are transparent — every `.js` file is right there to inspect, modify, or delete. Tools should be something you control, not something that controls you.
+- Plugins are black boxes
+- Hooks + Commands are transparent — every `.js` file is right there to inspect
+- Don't like something? Change it. Think it's unnecessary? Delete it
+- Tools should be something you control, not something that controls you
 
 ---
 
