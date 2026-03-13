@@ -69,7 +69,7 @@ Learns from user corrections — mistakes that don't show up in error logs.
 
 Shared logic between `session-end.js` and `pre-compact.js` is extracted into `shared-utils.js`.
 
-## Commands (30 files, 15 pairs EN + ZH)
+## Commands (36 files, 18 pairs EN + ZH)
 
 | EN | ZH | Function |
 | :- | :- | :------- |
@@ -82,12 +82,15 @@ Shared logic between `session-end.js` and `pre-compact.js` is extracted into `sh
 | /diary | /回顧 | Generate reflection diary |
 | /reflect | /反思 | Analyze pitfalls, find patterns |
 | /learn | /學習 | Manually save a pitfall |
+| /analyze | /分析 | Record corrections into error notebook |
+| /correct | /訂正 | Review error notebook anytime |
 | /check | /健檢 | Quick health scan |
 | /full-check | /大健檢 | Full audit |
 | /memory-health | /記憶健檢 | Memory file stats + capacity warnings |
 | /memory-search | /搜尋記憶 | Keyword search across all memory files |
 | /recover | /想起來 | Restore memory from GitHub backup |
 | /compact-guide | /壓縮建議 | When to compact and when not to |
+| /overview | /全覽 | List all available commands |
 
 ## File Structure
 

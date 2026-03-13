@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/node-18%2B-B8A9C9?style=flat-square" alt="Node 18+">
   <img src="https://img.shields.io/badge/dependencies-zero-A8B5A0?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/claude_code-hooks-E8B4B8?style=flat-square" alt="Claude Code Hooks">
-  <img src="https://img.shields.io/badge/version-1.5-C4B7D7?style=flat-square" alt="v1.5">
+  <img src="https://img.shields.io/badge/version-1.5.1-C4B7D7?style=flat-square" alt="v1.5.1">
 </p>
 
 <p align="center">
@@ -89,15 +89,15 @@ Some mistakes don't show up in error logs.
 
 You correct its output, and only then does it realize — "oh, that was wrong." These mistakes don't get remembered automatically. Unless someone builds it an error notebook.
 
-**Analyze** (`/analyze`) — The exam comes back graded
+**Analyze** (`/analyze`, manual) — The exam comes back graded
 
 You fix its work, it compares both versions line by line against existing rules. Known rules it missed — logged, counted. Patterns not yet in the rules — distilled into new ones.
 
-**Correct** (auto, before tasks) — Quick flip through past mistakes
+**Correct** (automatic, before each task) — Quick flip through past mistakes
 
 Before starting work, scan the list. Not re-learning — just a reminder: "I got this wrong last time, don't repeat it."
 
-**Reflect** (`/reflect` step 6) — Final exam review
+**Reflect** (`/reflect` step 6, manual) — Final exam review
 
 Periodically scan the full list. Same mistake 3+ times — upgrade to a hard rule. Already internalized — mark cleared, free up space. But you know that from here on, your AI has grown a little more.
 
@@ -119,10 +119,12 @@ Memory and learning are the core, but day-to-day work needs more:
 | Cross-device | Set up a GitHub memory repo, and your memory works across machines. New device? Run `/recover` and it's all there |
 | Recovery | `/recover` restores lost memory from GitHub backup |
 | Search | `/memory-search` keyword search across all memory files |
-| Bilingual | Every command has an English + Traditional Chinese version (30 files) |
+| Bilingual | Every command has an English + Traditional Chinese version (36 files) |
 
 <details>
 <summary><strong>Full command list</strong></summary>
+
+> **Not sure what commands are available?** Type `/overview` (`/全覽`) to see them all.
 
 **Daily Operations**
 
@@ -157,6 +159,7 @@ Memory and learning are the core, but day-to-day work needs more:
 | `/memory-search` | `/搜尋記憶` | Keyword search across all memory files |
 | `/recover` | `/想起來` | Restore memory from GitHub backup |
 | `/compact-guide` | `/壓縮建議` | Guide for when to compress and when not to |
+| `/overview` | `/全覽` | List all available commands |
 
 **Collaboration**
 
@@ -386,13 +389,17 @@ Plugins are black boxes. Hooks + Commands are transparent — every `.js` file i
 <details>
 <summary><strong>Changelog</strong></summary>
 
+**v1.5.1 — Quick Reference**
+- Added `/overview` (`/全覽`) to command tables and SKILL.md
+- 36 bilingual command files (18 pairs EN + ZH)
+
 **v1.5 — Session Handoff + Shared Core**
 - Session Handoff — switch between Claude Code windows without losing context. `/handoff` saves a handoff file, the next session picks it up automatically
 - Correction Cycle — `/analyze` compares your edits against rules, logs mistakes, builds an error notebook that auto-reviews before each task
 - `shared-utils.js` — extracted shared functions from `session-end.js` and `pre-compact.js`, eliminating ~80% duplicated code
 - Smart Context now resolves the correct memory directory per-project automatically — no hardcoded paths
 - Backup scope expanded: hooks, engine skill, and all project memories included in `/backup` and `/sync`
-- 30 bilingual command files (EN + ZH), up from 28
+- 36 bilingual command files (EN + ZH), up from 28
 
 **v1.4 — The Real Safety Net**
 - PreCompact hook — saves snapshot before context compression (auto or manual)
