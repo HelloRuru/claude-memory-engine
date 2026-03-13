@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * SessionStart Hook — 小八智慧回憶系統
+ * SessionStart Hook — Memory Engine SessionStart Hook
  * 1. 載入上次 session 摘要
  * 2. Smart Context：根據 CWD 自動載入對應記憶檔
  * 3. 載入最近的踩坑紀錄
@@ -12,38 +12,49 @@ const path = require('path');
 
 const HOME = process.env.HOME || process.env.USERPROFILE;
 const SESSIONS_DIR = path.join(HOME, '.claude', 'sessions');
-const MEMORY_DIR = path.join(HOME, '.claude', 'projects', 'C--Users-kaoru', 'memory');
+const PROJECTS_DIR = path.join(HOME, '.claude', 'projects');
+const FALLBACK_USER = (process.env.USER || process.env.USERNAME || 'user');
+const FALLBACK_MEMORY_DIR = path.join(PROJECTS_DIR, `C--Users-${FALLBACK_USER}`, 'memory');
 const LEARNED_DIR = path.join(HOME, '.claude', 'skills', 'learned');
 const MAX_AGE_DAYS = 7;
 
-// === Smart Context 對應表 ===
-const PROJECT_CONTEXT = [
-  {
-    keywords: ['ohruru'],
-    name: 'ohruru 主站',
-    files: ['blog-config.md', 'blog-troubleshooting.md'],
-  },
-  {
-    keywords: ['tools'],
-    name: '工具站',
-    files: ['paths-index.md'],
-  },
-  {
-    keywords: ['helloruru.github.io'],
-    name: 'Lab 實驗室',
-    files: ['paths-index.md'],
-  },
-  {
-    keywords: ['happy-exit'],
-    name: 'newday 網站',
-    files: ['paths-index.md'],
-  },
-  {
-    keywords: ['2026外包專案', '外包'],
-    name: '外包專案',
-    files: ['paths-index.md', 'quick-ref.md'],
-  },
-];
+// === 根據 CWD 找對應的 project memory 目錄 ===
+function resolveMemoryDir() {
+  const cwd = process.cwd().replace(/\\/g, '/');
+  // Claude Code 的 project 目錄命名規則：路徑分隔符換成 --, 冒號去掉
+  const slug = cwd.replace(/:/g, '').replace(/\//g, '-');
+
+  // 嘗試精確匹配
+  const exactDir = path.join(PROJECTS_DIR, slug, 'memory');
+  if (fs.existsSync(exactDir)) return exactDir;
+
+  // 嘗試小寫匹配（Windows 路徑大小寫不固定）
+  if (fs.existsSync(PROJECTS_DIR)) {
+    const cwdLower = slug.toLowerCase();
+    const dirs = fs.readdirSync(PROJECTS_DIR);
+    for (const d of dirs) {
+      if (d.toLowerCase() === cwdLower) {
+        const candidate = path.join(PROJECTS_DIR, d, 'memory');
+        if (fs.existsSync(candidate)) return candidate;
+      }
+    }
+  }
+
+  // fallback 到預設目錄
+  return FALLBACK_MEMORY_DIR;
+}
+
+const MEMORY_DIR = resolveMemoryDir();
+
+// === Smart Context: project-specific memory files loaded based on CWD ===
+// Add your own project entries here. Format:
+//   { keywords: ['my-project'],        // substrings to match in CWD
+//     name: 'My Project',              // display name
+//     files: ['project-notes.md'] }    // memory files to auto-load
+//
+// Example:
+//   { keywords: ['my-website'], name: 'My Website', files: ['site-config.md', 'troubleshooting.md'] },
+const PROJECT_CONTEXT = [];
 
 // === 找最近的 session 摘要 ===
 function findLatestSession() {
@@ -157,14 +168,14 @@ function checkReflectReminder() {
 
     if (reflectFiles.length === 0) {
       // 從來沒跑過 reflect
-      return '[小八提醒] 嚕寶還沒跑過 /reflect，累積幾天的 session 後可以跑一次看看！';
+      return '[Memory Engine] You haven\'t run /reflect yet. After a few days of sessions, try running it to review patterns!';
     }
 
     const lastReflect = reflectFiles[0];
     const daysSince = Math.floor((Date.now() - lastReflect.mtime) / (24 * 60 * 60 * 1000));
 
     if (daysSince >= 7) {
-      return `[小八提醒] 距離上次 /reflect 已經 ${daysSince} 天了，可以跑一圈整理記憶！`;
+      return `[Memory Engine] It's been ${daysSince} days since the last /reflect. Consider running it to consolidate memory!`;
     }
   } catch (e) {}
 
@@ -235,11 +246,55 @@ function checkRecurringPitfalls() {
   return recurring;
 }
 
+// === 交接偵測：讀取待處理的 handoff 檔案 / Detect pending handoff files ===
+function findPendingHandoffs() {
+  if (!fs.existsSync(MEMORY_DIR)) return [];
+
+  const stateFile = path.join(SESSIONS_DIR, '.handoff-read.json');
+  let readSet = new Set();
+  try {
+    if (fs.existsSync(stateFile)) {
+      readSet = new Set(JSON.parse(fs.readFileSync(stateFile, 'utf-8')));
+    }
+  } catch (e) {}
+
+  const handoffs = fs.readdirSync(MEMORY_DIR)
+    .filter(f => f.startsWith('handoff-') && f.endsWith('.md'))
+    .filter(f => !readSet.has(f))
+    .map(f => {
+      const fp = path.join(MEMORY_DIR, f);
+      const content = fs.readFileSync(fp, 'utf-8').trim();
+      // 去掉 frontmatter
+      const body = content.replace(/^---[\s\S]*?---\s*/m, '').trim();
+      return { name: f, body };
+    })
+    .filter(h => h.body.length > 0);
+
+  // 標記為已讀 / Mark as read
+  if (handoffs.length > 0) {
+    for (const h of handoffs) readSet.add(h.name);
+    try {
+      fs.writeFileSync(stateFile, JSON.stringify([...readSet]), 'utf-8');
+    } catch (e) {}
+  }
+
+  return handoffs;
+}
+
 // === 主程式 ===
 function main() {
   const output = [];
 
   try {
+    // 0. 交接偵測 / Handoff detection
+    const handoffs = findPendingHandoffs();
+    if (handoffs.length > 0) {
+      output.push(`[Handoff] 收到 ${handoffs.length} 份交接：`);
+      for (const h of handoffs) {
+        output.push(`--- ${h.name} ---\n${h.body}`);
+      }
+    }
+
     // 1. 載入上次 session 摘要
     const latest = findLatestSession();
     if (latest) {
@@ -287,7 +342,7 @@ function main() {
     // 6. 踩坑內化檢查：重複踩坑 3+ 次就提醒
     const recurring = checkRecurringPitfalls();
     for (const item of recurring) {
-      output.push(`[小八提醒] 這個踩坑重複出現 ${item.count} 次了：${item.description}。建議寫進 CLAUDE.md 或 memory，下次 /reflect 時處理。`);
+      output.push(`[Memory Engine] This pitfall has recurred ${item.count} times: ${item.description}. Consider adding it to CLAUDE.md or memory, or address it in the next /reflect.`);
     }
 
     // 7. /reflect 提醒：太久沒跑就提醒

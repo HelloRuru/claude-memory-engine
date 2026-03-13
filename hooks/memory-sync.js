@@ -7,15 +7,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const MEMORY_DIR = path.join(
-  process.env.HOME || process.env.USERPROFILE,
-  '.claude', 'projects'
-);
+const HOME_DIR = process.env.HOME || process.env.USERPROFILE || '';
 
-const STATE_FILE = path.join(
-  process.env.HOME || process.env.USERPROFILE,
-  '.claude', 'scripts', 'hooks', '.memory-sync-state.json'
-);
+const MEMORY_DIR = HOME_DIR ? path.join(HOME_DIR, '.claude', 'projects') : '';
+
+const STATE_FILE = HOME_DIR ? path.join(HOME_DIR, '.claude', 'scripts', 'hooks', '.memory-sync-state.json') : '';
 
 function getProjectMemoryDir() {
   const parts = process.cwd().replace(/\\/g, '/').split('/').filter(Boolean);
@@ -58,8 +54,37 @@ function getChangedLines(oldContent, newContent) {
   return newLines.filter(l => !oldLines.has(l));
 }
 
+// === 交接偵測：偵測新的 handoff 檔案 / Detect new handoff files ===
+function checkHandoffs(memDir, state) {
+  const handoffFiles = fs.readdirSync(memDir)
+    .filter(f => f.startsWith('handoff-') && f.endsWith('.md'));
+
+  const knownHandoffs = new Set(state['known_handoffs'] || []);
+  const newHandoffs = handoffFiles.filter(f => !knownHandoffs.has(f));
+
+  if (newHandoffs.length > 0) {
+    // 更新已知清單 / Update known list
+    state['known_handoffs'] = [...new Set([...knownHandoffs, ...newHandoffs])];
+
+    const output = [];
+    output.push(`[Handoff] 收到新交接 ${newHandoffs.length} 份：`);
+    for (const f of newHandoffs) {
+      const fp = path.join(memDir, f);
+      const content = fs.readFileSync(fp, 'utf-8').trim();
+      const body = content.replace(/^---[\s\S]*?---\s*/m, '').trim();
+      const preview = body.split('\n').slice(0, 10).join('\n');
+      output.push(`--- ${f} ---\n${preview}`);
+    }
+    return output.join('\n');
+  }
+  return null;
+}
+
 function main() {
   try {
+    // null guard：HOME 拿不到就退出，避免路徑拼接出錯
+    if (!HOME_DIR) return;
+
     const memDir = getProjectMemoryDir();
     if (!memDir) return;
 
@@ -126,6 +151,13 @@ function main() {
       if (output.length > 0) {
         process.stdout.write(output.join('\n') + '\n');
       }
+    }
+
+    // 交接偵測 / Handoff detection
+    const handoffMsg = checkHandoffs(memDir, state);
+    if (handoffMsg) {
+      saveState(state);
+      process.stdout.write(handoffMsg + '\n');
     }
   } catch (err) {
     // 靜默失敗
